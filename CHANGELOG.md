@@ -4,6 +4,26 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.7.0
+
+**Multiple actors on one recording.** `demo.actor(id, opts?)` names a participant — an
+admin, a customer, whoever the demo is about — and gives it its own `BrowserContext` and
+`Page`; `demo.turn(actor, { card? })` hands the browser from whoever holds it to that actor.
+Capture is still exactly one active context and one active page at any instant, so turns are
+strictly sequential and never simultaneous: what changes is that a scenario can now name who
+is at the keyboard rather than filming every participant through one shared page. Every
+hand-off draws a persistent corner badge naming the active actor, and optionally a full-frame
+transition card between the two actors' footage — card-less turns still get one, synthesised
+as `Now: <label>`. Both are free on every tier, on the same "recorder feature, not a render
+option" footing as chapters and highlight.
+
+A `session`-phase handoff is now reachable from **any** actor's turn, not only the actor a
+scenario defaults to when none are named — the four refusal checks and the on-camera
+recording behave identically whichever actor calls `.handoff()`. A single-actor scenario is
+unaffected: it takes exactly the same code path it always has, `demo.actor()`/`demo.turn()`
+are additive to `DemoContext`, and nothing about an existing scenario's plan, events or
+render changes because this feature exists.
+
 ## 1.6.0
 
 **MP4 chapter markers are free on every tier.** A licence no longer buys the chapter

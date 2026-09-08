@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.6.0
+VERSION=1.7.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -294,6 +294,18 @@ window instead, and carry on once you are done — declared with `handoff: 'pref
 never asks for a password, and a recording made this way stores no Playwright trace at all.
 Full details, including which mode to use and why: **[`docs/scenarios.md`](docs/scenarios.md)**.
 
+### Multiple actors
+
+A demo with more than one person in it — an admin who sets something up, a customer who
+finishes it — can be named as two actors on one continuous recording, rather than forced
+through a single page pretending to be both. `demo.actor(id)` introduces each one with its
+own browser context; `demo.turn(actor)` hands the browser between them, drawing a persistent
+corner badge that names whoever is active and, optionally, a full-frame transition card
+between turns. Only one actor's context is ever active at once — capture stays exactly one
+browser context, one page, turn by turn — which is what keeps a multi-actor recording exactly
+as reproducible as a single-actor one. The badge and the transition card are both free on
+every tier, and a `session`-phase handoff works from any actor's turn, not only the default one.
+
 ### What a recording contains
 
 ```text
@@ -329,6 +341,7 @@ Recordings panel in the menu is how you do that.
 | Closing credit card | 3s *Made with PlainTake* | removed |
 | Your own outro text and colours | ❌ | ✅ |
 | MP4 chapter markers from `demo.chapter()` | ✅ | ✅ |
+| Multiple actors, each their own context (`demo.actor()`/`demo.turn()`) | ✅ | ✅ |
 | Camera that zooms toward each step's target | ❌ | ✅ |
 | Price | free | one-time, perpetual |
 
