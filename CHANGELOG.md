@@ -4,6 +4,89 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.9.0
+
+**Explain while demoing.** `demo.explain({id, title, narration, scene, cues?, voice?})` cuts
+away from the recording to a full-frame, narrated motion-graphics scene — a title card, a
+process diagram, a side-by-side comparison, an author-supplied svg, or a recap — and resumes
+on the same page once it ends, the same boundary mechanism a multi-actor `demo.turn()` already
+uses to hand the browser between two windows. Nothing about the recording's determinism or
+re-renderability changes: the cut-away is compiled and rendered *after* capture finishes, by
+the sibling [PlainMotion](https://plainmotion.dev) CLI, from a generated one-scene project
+whose bytes are seeded from the same deterministic hash every other frozen artifact is. Free
+on every tier, like every authoring verb — the one licence interaction is PlainMotion's own,
+and it is invisible to an author: PlainMotion's free tier freezes a closing credit card into
+its own compiles, which would be wrong twice over spliced into the middle of a PlainTake
+video, so that one combination is refused with the shared activation key named, rather than
+shipped with someone else's credits in it.
+
+Cues (`{atPhrase, action, target}`) time a scene's animation to a phrase in its own
+narration rather than to a number, so rewording a line moves the cue with it instead of
+silently drifting out of sync — the same reasoning that keeps a step's caption and its
+narration one string, never two.
+
+**Explain scenes compose with everything else this recorder already does.** A cut-away
+between two segments of one actor's own footage is exactly as legal as one between two
+different actors' — the offset math that reserves screen time for a transition card reserves
+it for an explain scene identically, and the two can be mixed freely in one recording.
+Cursor, camera, chapters and captions carry on either side of a cut-away unaffected; the
+badge track and every hand-off card in a multi-actor demo still land on the right frame with
+an explain scene spliced in between. `plaintake doctor` reports whether the PlainMotion CLI
+is on `PATH`, without failing an installation that never needed it — the overwhelming
+majority of scenarios never call `demo.explain()` — and `plaintake inspect` lists the explain
+scenes a bundle carries, by id and duration. Requires the plainmotion CLI on `PATH` at record
+time only; a bundle that already carries a frozen explain segment re-renders without it, the
+same way it re-renders without a browser.
+
+## 1.8.0
+
+**A demo can speak with more than one voice.** Declare the set as `speech.voices` in the
+scenario's metadata, then give an actor (`demo.actor('narrator', { voice: 'bm_george' })`)
+or a single step (`demo.step({ voice: 'af_bella' })`) its own. The step's name wins over
+the actor's, the actor's over `--voice`, and an override naming a voice the scenario did
+not declare is refused at record time with the line to add — every declared voice is
+pre-loaded before the browser opens, at roughly +250 MB resident per extra voice, so the
+set is declared rather than discovered. A one-voice scenario is unchanged: no
+`speech.voices`, the `--voice` default applies, and the bundle it records is the one 1.7.0
+would have.
+
+**The narration language is plumbed end to end — and the honest refusal is sharper.**
+The Kokoro model ships 55 voices in nine languages, and PlainTake still refuses the 27
+non-English ones, each by name and each naming its language, because the pronunciation
+dictionaries those languages need are derived from eSpeak (GPL) upstream, and PlainTake
+ships only licence-clean pronunciation data, which exists for English alone. What changed
+is everything around that refusal: the run's one narration language is derived from its
+voices and threaded through the engine, the assets and the evidence bundle, and a voice
+list that spans two languages is refused at record setup with both names in the message —
+one run speaks one language. When a licence-clean dictionary for another language exists,
+enabling it becomes a data drop, not a code change.
+
+**One-time note for narrated runs: the clip cache re-keys.** Cache keys now carry the
+language, so previously cached English clips are never hit again and the first narrated
+run after upgrading re-synthesises each line once. The engine stamp is deliberately
+unchanged — nothing about how a clip is synthesised changed, only the shape of its key,
+and the new clips are the audio the old ones were.
+
+**`plaintake import <trace.zip> --output <draft.demo.ts>`.** Drafts a scenario from any
+Playwright trace — one of your own suite's, or a PlainTake bundle's own `trace/`. Only
+navigation, click, fill, press, select, hover and scroll become steps; every other call
+the trace recorded is accounted for in the result rather than dropped silently. The draft
+is a starting point, stated in its header and in every result: subtitles are placeholders
+(captions are authored, never transcribed), timings are the documented defaults, and
+same-origin URLs are relativised to `${baseURL}` because the trace's origin carries a
+port no scenario should name. The trace records everything typed into the page, so
+`fill` values are redacted where the selector looks secret-bearing (password, token, API
+key…) and every result carries the standing warning to review the draft before committing
+it. Only the `trace.trace` entry is parsed — `trace.network`, where cookies and request
+bodies live, is never read. CLI-only, like `prune`: the MCP tool list stays at four.
+
+**The marketing site no longer contradicts the product.** The spec table's caption row
+still said hard-burned-by-default three minor versions after the soft track became the
+default; that row and the page's meta description are fixed, the 1.5–1.7 features
+(multi-actor, `highlight`, `--aspect`, `check`/`diff`/`prune`, the intro card, narration)
+are now listed, and a test asserts the caption-default claim so the row cannot drift
+again.
+
 ## 1.7.0
 
 **Multiple actors on one recording.** `demo.actor(id, opts?)` names a participant — an

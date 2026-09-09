@@ -137,6 +137,14 @@
           "type": "number",
           "minimum": 0.5,
           "maximum": 2
+        },
+        "voices": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.7.0
+VERSION=1.9.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -171,6 +171,7 @@ plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>] [--yes]
+plaintake import   <trace.zip> --output <draft.demo.ts>
 plaintake doctor
 plaintake install-browser
 plaintake install-voice [--voice <id>]... [--all-voices]
@@ -189,6 +190,7 @@ plaintake --version
 | `diff` | Semantic diff between two bundles — steps, assertions, target position/name, timing and captions. No frame comparison |
 | `inspect` | Reports the video, captions, chapters, output sizes and toolchain. Read-only |
 | `prune` | Deletes recordings under the working directory, selected by age, count or scenario. Dry-run unless `--yes`. No MCP tool |
+| `import` | Drafts a scenario from any Playwright `trace.zip` — yours, or a recording's own `trace/`. Placeholder subtitles, no timings, secret-looking values redacted. Review before committing. No MCP tool |
 | `doctor` | Checks FFmpeg, libass, x264 and the filters that are needed, and reports whether the voice model is installed |
 | `install-voice` | Downloads the voice model `--speech on` needs. Once, and only if you want narration |
 | `activate` | Verifies a licence key with Gumroad once and saves it locally. Headless alternative to the TUI's *Enter a licence key* |
@@ -383,10 +385,12 @@ Stated up front rather than discovered later:
 
 - **The only sound is the captions read aloud** — no microphone, no page audio, no system
   audio, no music, no sound effects. `--speech on` needs a one-time 93 MB voice-model
-  download. There are 28 English voices and no per-voice tuning; speed is a scenario-level
-  `speech.speed` dial (0.5–2.0×), not a per-step or per-voice one, and there is no per-step
-  override; the pronunciation dictionary is US English only, so a non-English scenario
-  gets captions and no voice rather than an accent reading the wrong sounds. A video that talks
+  download. There are 28 English voices — variable per actor and per step — but English only,
+  because the licence-clean pronunciation data PlainTake ships exists for English alone (the
+  dictionaries the other languages need are eSpeak-derived, and GPL), so a non-English scenario
+  gets captions and no voice rather than an accent reading the wrong sounds. Speed is a
+  scenario-level `speech.speed` dial (0.5–2.0×), not a per-step or per-voice one; no pitch, no
+  SSML. A video that talks
   is longer than the same demo recorded silent, because each step waits for its line to finish.
 - **macOS arm64 and Linux x64 only.** No Windows build. No macOS Intel build.
 - **Chromium only**, one tab, one page.
@@ -415,6 +419,11 @@ Stated up front rather than discovered later:
 - **Nothing prunes old recordings on its own.** `plaintake prune` deletes on request — dry-run
   unless you pass `--yes` — but there is no automatic retention policy and no MCP tool for it.
   Deleting is a deliberate act, whether that is the TUI's confirmation or `--yes` on the CLI.
+- **`import` drafts; it does not finish.** The draft's subtitles are placeholders (captions are
+  written by you), timings are defaults, and any value typed into the recorded page is in it —
+  redacted only where the field looked secret-bearing, because the trace recorded everything.
+  Read the draft before committing it. Only the `trace.trace` entry is read; `trace.network`
+  never is.
 - The licence check runs on your own machine in a binary you hold, so it is
   tamper-*evident*, not tamper-proof. It is a receipt, not a lock, and a licensing failure
   never blocks a recording — it falls back to the free tier and says why.

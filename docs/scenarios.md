@@ -5,6 +5,11 @@ metadata field, every `demo` method, and the rules a scenario has to follow — 
 wants the depth: a human writing one by hand, or an agent with no other context than this file
 and [`schema/scenario.schema.json`](../schema/scenario.schema.json).
 
+Starting from an existing Playwright trace instead of a blank file?
+`plaintake import <trace.zip> --output <draft.demo.ts>` drafts one — placeholder subtitles,
+timings not imported, secret-looking values redacted — and the draft is finished by hand,
+which is what this document is for.
+
 A scenario is one file, one default export. `@plaintake/scenario` is only needed for editor
 autocomplete while writing one — `npm install --save-dev @plaintake/scenario` in your project and your
 copy takes precedence; without it, the installed binary's own fallback copy is what runs:
@@ -79,6 +84,7 @@ Playwright `Page`) and `baseURL` (the string passed to `--base-url`/`fixture`).
 | `waitFor` | `({id, title, until, timeoutMs?}) => Promise<void>` | Waits on a condition that prompts nobody — a push notification, an emailed link, a background job. Needs no window and no terminal; works headless and in CI. |
 | `handoff` | `({id, title, detail?, until?, timeoutMs?, mask?}) => Promise<void>` | Hands the real browser window to a person. Requires `handoff` in the scenario's metadata; only available in `run()` when `handoff: 'session'`, and in `preflight()` always. See below. |
 | `pause` | `(ms: number) => Promise<void>` | An explicit, recorded pause. Prefer this over `page.waitForTimeout`: it races the run's abort signal and appears on the timeline. |
+| `explain` | `({id, title, narration, scene, cues?, voice?}) => Promise<void>` | A full-frame, narrated motion-graphics cut-away in the middle of the recording. See [Explaining while demoing](#explaining-while-demoing). |
 
 Pass `{ timeout: 0 }` to whatever Playwright call sits inside a `waitFor`'s or `handoff`'s
 `until`, so the DSL's own `timeoutMs` is the only deadline — otherwise Playwright's own 30s
@@ -170,6 +176,70 @@ best-effort, and rare — the run still completes, but the highlight is reported
 diagnostic rather than silently skipped, so the gap is visible in `demo_run`'s diagnostics
 rather than only in the missing pixels.
 
+## Explaining while demoing
+
+```ts
+await demo.explain({
+  id: 'key-scope',
+  title: 'Where the key lives',
+  narration:
+    'Every key you create here is scoped to this settings tier, and it never leaves ' +
+    'your browser session.',
+  scene: {
+    type: 'process',
+    nodes: [
+      { id: 'browser', label: 'Your browser' },
+      { id: 'settings', label: 'Settings tier' },
+    ],
+    connections: [{ id: 'scope', from: 'browser', to: 'settings' }],
+  },
+  cues: [{ atPhrase: 'settings tier', action: 'reveal', target: 'settings' }],
+});
+```
+
+`demo.explain()` cuts away from the recording to a full-frame, narrated motion-graphics
+scene — compiled and rendered by the sibling [PlainMotion](https://plainmotion.dev) CLI,
+which must be on `PATH` at record time (`plaintake doctor` reports whether it is). The
+cut-away is a boundary on the timeline, the same mechanism a multi-actor `demo.turn()`
+uses to hand the browser between two windows: the screencast pauses, the scene plays, and
+recording resumes on the same page with nothing excised. Free on every tier, like every
+authoring verb — the only licence interaction is PlainMotion's own, and it is invisible to
+an author: a free-tier PlainMotion compile would otherwise freeze its own closing credit
+card into the middle of the video, so PlainTake refuses that combination with the
+activation command named, rather than shipping a scene with someone else's credits in it.
+
+- **`id`** — becomes the directory the frozen scene lives in (`explain/<id>/`) and the
+  generated scene's own id, so it follows PlainMotion's own rule: lower-case alphanumeric
+  and hyphens, starting alphanumeric.
+- **`title`** — a human label shown in `inspect` and diagnostics. Never drawn in the video.
+- **`narration`** — what the scene says, and the only source of both the audio and the
+  caption: there is no separate caption field, because two strings that are supposed to
+  say the same thing eventually disagree. The narration is also the scene's clock — an
+  explain scene always speaks, and lasts exactly as long as it takes to say this line.
+- **`scene`** — which motion-graphics layout to draw, and its content:
+
+  | `type` | Fields | Shows |
+  |---|---|---|
+  | `title` | `headline`, `subtitle?` | A title card. |
+  | `process` | `nodes` (2–5, `{id,label}`), `connections?` (`{id,from,to,label?}`), `direction?` (`'horizontal' \| 'vertical'`), `title?`, `caption?` | A left-to-right (or top-to-bottom) flow. |
+  | `comparison` | `left`/`right` (`{heading,points}`), `title?` | Two columns, side by side. |
+  | `diagram` | `src` (an svg path, relative to the scenario file), `title?`, `caption?`, `regions?` | An author-supplied svg, imported as-drawn. |
+  | `recap` | `items` (strings), `title?` | A closing bullet list. |
+
+  Geometry is deliberately absent from every one of these — where a pixel lands is the
+  scene layout's decision, exactly as it is in a `plainmotion.yaml`. An author says what
+  exists and what the narration points at, never inches or coordinates.
+- **`cues`** (optional) — `{atPhrase, action, target}`, timing an animation to a phrase in
+  `narration` rather than to a numeric offset: rewording the line moves the cue with it
+  instead of silently drifting out of sync. `action` is one of `reveal`, `hide`,
+  `emphasize`, `deemphasize`, `draw`, `focus`; `target` names an id the scene itself
+  declares (a node, a connection, or a comparison side). A phrase absent from the
+  narration, or a target the scene never declared, is refused at record time.
+- **`voice`** (optional) — speaks this scene with a different voice than the run's
+  `--voice` default, under the same declaration rule as a step's own `voice`: it must be
+  the default or an entry in `speech.voices`, or the run is refused with the fix named.
+  Meaningful only when `--speech on` is doing the speaking.
+
 ## Narration speed
 
 ```ts
@@ -188,10 +258,33 @@ carries this harmlessly.
   TTS engines expose a multiplier over roughly this range. A scenario that genuinely needs more
   is a reason to revisit the bound with real data, not to work around it.
 
-This is scenario-level only: there is no per-step override and no `--speed` CLI flag. A
-per-step voice or speed would mean preloading more than one voice model at once — each
-additional voice was measured at roughly +250MB resident — which is a real architecture change
-this DSL is not taking on. Pitch and SSML are likewise out of scope.
+This is scenario-level only: there is no per-step override and no `--speed` CLI flag. Voice
+*did* become per-step (see below) because a switched voice is a lookup into a set pre-loaded at
+engine-open, already paid for by the declaration; speed has no such set, and one multiplier per
+recording is the dial anyone has asked for. Pitch and SSML are likewise out of scope.
+
+## Multiple voices
+
+```ts
+speech: { voices: ['am_michael', 'bf_emma'] },
+```
+
+The voices this scenario may switch between mid-run, beyond the default `--voice` picks. A
+step takes one with `demo.step({ voice })`, an actor with `demo.actor('guide', { voice })`;
+the step's name wins over the actor's, the actor's over the run default. A voice that is
+neither the default nor in the list is refused at record time, with the one-line fix in the
+message.
+
+Declared up front so every voice's assets are checked — and the whole set pre-loaded — before
+the browser opens, rather than a dead step mid-recording. Memory is why the list is yours to
+keep short: each additional voice holds roughly +250 MB resident while the engine is open. A
+scenario that declares voices but supplies a WAV for every step never opens the engine at all
+and pays none of this.
+
+Every voice in one recording must be the same language: the run's pronunciation dictionary is
+configured once, and a mix is refused with both sides named. Today that language is English —
+PlainTake ships only licence-clean pronunciation data, which exists for English alone, so the
+model's 27 non-English voices are refused by name, each with its language and the reason.
 
 ## Pronunciation hints
 

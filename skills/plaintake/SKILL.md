@@ -19,7 +19,8 @@ repository.
 ## When to use
 
 Demos of a web app — your own (`--base-url`) or the bundled fixture (`--fixture`);
-re-rendering a bundle (captions soft ↔ hard); verifying a bundle's hashes.
+re-rendering a bundle (captions soft ↔ hard); verifying a bundle's hashes; turning an
+existing Playwright trace into a draft scenario (`plaintake import`, CLI only).
 
 Not PlainTake: OS screen recording, page or microphone audio (sound is synthesized narration
 only), non-deterministic content, any other viewport. macOS arm64 and Linux x64 only.
@@ -39,6 +40,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 | `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
 | `plaintake inspect <dir>` | Summarize a bundle — cues, chapters, narration. |
+| `plaintake import <trace.zip> --output <draft.demo.ts>` | Draft a scenario from any Playwright trace — yours, or a bundle's own `trace/`. CLI only. |
 | `plaintake doctor` / `install-browser` / `install-voice` | Toolchain check / Chromium / voice model. |
 
 - `--subtitles` defaults to `soft` — read mistake 1 before embedding anything.
@@ -48,6 +50,9 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
   a failure.
 - The video lands at `<output>/output/demo.mp4`, beside `captions/captions.{srt,vtt,ass}`,
   `manifest.json` and the Playwright `trace/` (no trace for handoff runs).
+- `plaintake import` drafts with placeholder subtitles and whatever the trace recorded being
+  typed — secret-looking fields are redacted, everything else lands verbatim. Read the draft
+  before committing it.
 
 `demo` methods: `step` (one user-visible action; `target` positions the cursor/camera and
 **never acts**; `run` does the work), `assert`, `chapter`, `mask`, `waitFor`, `pause`,
