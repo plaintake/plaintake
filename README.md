@@ -224,7 +224,8 @@ words that would run off the edge, naming the offending line. `run --aspect` fro
 avoids this, because the captions are wrapped for the right frame from the first take.
 
 Recording for more than one product? Commit a `plaintake.config.json` at each product's repo
-root with its own outro branding (Pro) — `run` finds the nearest one walking up from the
+root with its own branding — outro card and theme colours, both Pro (see
+[Free and Pro](#free-and-pro)) — `run` finds the nearest one walking up from the
 working directory, otherwise falls back to this machine's global config. `--config <path>`
 picks a file outright; a missing or invalid one is a usage error rather than a silent
 fallback.
@@ -341,7 +342,7 @@ Recordings panel in the menu is how you do that.
 | Spoken narration — a local voice model, or your own audio | ✅ | ✅ |
 | Selectable caption track as well as burned-in | ✅ | ✅ |
 | Closing credit card | 3s *Made with PlainTake* | removed |
-| Your own outro text and colours | ❌ | ✅ |
+| Your own outro text and colours, and the demo's accent and caption colours | ❌ | ✅ |
 | MP4 chapter markers from `demo.chapter()` | ✅ | ✅ |
 | Multiple actors, each their own context (`demo.actor()`/`demo.turn()`) | ✅ | ✅ |
 | Camera that zooms toward each step's target | ❌ | ✅ |
