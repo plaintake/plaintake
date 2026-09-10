@@ -36,6 +36,33 @@ white in a themed demo: a separate track with fixed colours, deliberately out of
 round, so a themed two-actor demo shows white badges rather than tinted ones. Recorded
 here so it reads as a decision, not an oversight.
 
+**Fixed: a click's spotlight now brackets the press.** Found in this release's own review
+recordings: a highlighted click opened its dim overlay at the step's start — the same
+instant the click fires — and faded in over ~200 ms, so on any click that navigates (which
+is most of them; the screen changes 26–90 ms after the press) the spotlight reached full
+strength on the *next* screen, dimming the success dialog instead of the button. The
+window now opens while the pointer is still parking (500 ms before the press) and closes
+200 ms after it, as the click ripple's ring ends: the spotlight is settled before the
+press, through the ripple's start, and gone before the new screen has been dimmed in
+error. Continuous actions (`type`, `point`) keep the whole-step window — nothing changes
+screen at their opening instant. Two edge behaviours, both diagnosed rather than silent: a
+bracket that would open before the previous highlight closes is *floored onto that end*
+with a `highlight.compressed` diagnostic (a compression the retiming created, not a
+backwards window), and a press that happened entirely inside the previous window — no room
+left to floor onto — is dropped with `highlight.dropped`, as before. Already-recorded
+bundles are untouched: the window is frozen into the plan at record time, so every
+existing bundle re-renders byte-identically and only new recordings pick up the bracket.
+
+**The spotlight now dims around the target, not flush to it.** A highlighted element's own
+box, cut exactly at its edges, read as a crop mark rather than a light shone on it. Every
+highlight rect now gets 16px of margin on every side — the same "breathing room" a product
+tour's highlighted element gets in tools like Driver.js or Intro.js — before the frame
+around it dims. The margin is fixed and applies uniformly; a target sitting flush against
+the frame's edge is clamped back onto it, never pushed off-screen, and a rect that never
+touched the visible frame at all still gets no spotlight regardless of how generous the
+margin is. Frozen into the plan like the window itself: only new recordings gain the
+margin.
+
 ## 1.9.0
 
 **Explain while demoing.** `demo.explain({id, title, narration, scene, cues?, voice?})` cuts

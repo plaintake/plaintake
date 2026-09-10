@@ -162,9 +162,10 @@ await demo.step({
 });
 ```
 
-Dims everything on screen except `target`'s rect, with an optional callout label beside it.
-Free on every tier — unlike the camera, there is no licence gate and nothing to turn on at
-the CLI or in `demo_run`; a step's own `highlight` field is the only switch.
+Dims everything on screen except `target`'s rect *and a 16px margin around it*, with an
+optional callout label beside it. Free on every tier — unlike the camera, there is no
+licence gate and nothing to turn on at the CLI or in `demo_run`; a step's own `highlight`
+field is the only switch.
 
 - `highlight: true` — spotlights `target` with no label.
 - `highlight: { label: 'text' }` — spotlights `target` and draws `text` beside it.
@@ -175,6 +176,24 @@ the CLI or in `demo_run`; a step's own `highlight` field is the only switch.
 best-effort, and rare — the run still completes, but the highlight is reported as a
 diagnostic rather than silently skipped, so the gap is visible in `demo_run`'s diagnostics
 rather than only in the missing pixels.
+
+**The hole is cut around the target, not flush to it.** A spotlight that ends exactly at an
+element's own edge reads as a crop mark, not a light shone on it — so the measured rect is
+grown by 16px on every side before the frame is dimmed, the same "breathing room" a
+product tour's own highlighted element gets in tools like Driver.js or Intro.js. The margin
+is fixed, not configurable, and a target sitting flush against the frame's edge is clamped
+back onto it rather than pushed off-screen — you never see a hole that reaches past the
+picture.
+
+**When the spotlight is on screen depends on what the step does.** A click's window
+*brackets the press*: the dim starts fading in while the cursor is still parking on the
+target (500 ms before the click fires), is at full strength through the press and the start
+of the click ripple, and releases 200 ms after the press — so the viewer always sees the
+spotlight settle on the button *before* it is clicked, never a dim overlay arriving on the
+screen the click just navigated to. A continuous action (`type`, `point`, or no `action`)
+keeps its window over the whole step, because nothing changes screen at its opening
+instant. Like every derived track, the timing is frozen into the bundle at record time; a
+bundle recorded before this bracketing exists re-renders exactly as it always did.
 
 ## Explaining while demoing
 
