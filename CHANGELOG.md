@@ -4,6 +4,38 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.10.0
+
+**A demo in your colours.** A Pro licence already bought the closing card; it now buys the
+demo's chrome too. Four optional fields in `plaintake.config.json`'s `branding` block —
+`accentColor`, `captionTextColor`, `captionOutlineColor`, `captionBoxColor` — recolour the
+synthetic cursor's fill and its click ripple, the highlight label's text, and the burned-in
+caption plate. Each field is independent: set the accent alone and the captions keep their
+tuned defaults, set the caption box alone and the cursor stays white. Every value is a
+six-digit `#RRGGBB` string, and the fields are editable in the terminal UI on the settings
+screen labelled *Branding and theme*. Pro-only, gated exactly like the card: the free tier
+ignores theme fields entirely — a configured field is never partly honoured, the same policy
+that keeps the credit unbypassable.
+
+**Frozen at record time, like everything a licence buys.** The theme is resolved once, when
+`plaintake run` reads the config and licence of that moment, and frozen into the bundle's
+render plan. A themed bundle re-renders the same bytes on any machine, licensed or not, and
+an `--aspect` re-cut keeps the theme. A run with no theme fields set — free or Pro —
+produces bytes identical to 1.9.0's, so theming is additive and an unbranded workflow
+changes not at all. One version note, in the honest direction: a PlainTake older than
+1.10.0 re-rendering a themed bundle still draws the themed colours, because the caption and
+cursor tracks are executed verbatim from the bundle — but a re-cut on that older binary
+redraws them in the default colours, the same skew any new plan field has always had.
+
+**Where colour exists, it follows the theme; where it doesn't, that's stated.** Caption
+colours apply to the hard burn and the `.ass` sidecar; the soft `mov_text` track and the
+`.srt`/`.vtt` sidecar carry no colour concept in their formats, so there is nothing to
+theme there. The caption style's tuned metrics — font, outline width, box opacity, margins,
+alignment — stay fixed; only the colours move. And the multi-actor corner badges stay
+white in a themed demo: a separate track with fixed colours, deliberately out of this first
+round, so a themed two-actor demo shows white badges rather than tinted ones. Recorded
+here so it reads as a decision, not an oversight.
+
 ## 1.9.0
 
 **Explain while demoing.** `demo.explain({id, title, narration, scene, cues?, voice?})` cuts
