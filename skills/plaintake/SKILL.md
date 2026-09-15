@@ -132,6 +132,12 @@ precedence; a source checkout needs it installed in your project.
    TypeScript only (no `enum`, `namespace`, parameter properties, decorators) — `validate`
    names the offender before a browser opens. Pass `{ timeout: 0 }` to Playwright calls
    inside `until`, so the DSL's `timeoutMs` governs.
+9. **Content revealed by an action isn't scrolled into view automatically.** A click that
+   renders a response panel further down the page leaves it off-screen unless the step also
+   scrolls it. Set `reveal` on that same step instead of bolting on a separate
+   `Actor.scroll()` step. Don't also put `target` + `highlight` (or rely on camera zoom) on
+   that same step — both measure their rect before `reveal`'s scroll runs, so the overlay
+   lands at the stale, pre-scroll position; do the highlight/zoom on a later step instead.
 
 ## Deeper reference
 

@@ -65,7 +65,7 @@ export default defineDemo({
 | `intro` | object | no | See [The opening card](#the-opening-card). |
 | `camera` | object | no | See [Framing](#framing). |
 | `speech` | object | no | Scenario-level narration speed. See [Narration speed](#narration-speed). |
-| `pronunciations` | `Record<string, string>` | no | Text substituted into narration before synthesis, so a caption can read one thing while the voice says another. See [Pronunciation hints](#pronunciation-hints). |
+| `pronunciations` | `Record<string, string>` | no | Text substituted into narration before synthesis, so a caption can read one thing while the voice says another. Merged on top of a small built-in default. See [Pronunciation hints](#pronunciation-hints). |
 
 The machine-readable version of this table is
 [`schema/scenario.schema.json`](../schema/scenario.schema.json).
@@ -328,6 +328,13 @@ the whole words you list.
   an author-supplied WAV (`--speech file`, or a file dropped into `narration/` under `--speech
   on`) is already-recorded audio; there is no text left to substitute into, so this dictionary
   never touches it.
+- A small built-in default — currently just `{ id: 'I D' }` — is merged in underneath whatever a
+  scenario declares, so every recording gets it without asking. It exists only for words the
+  engine speaks as a plainly different, wrong word (`id` otherwise comes out as the English word
+  "id"); it is not a place for stylistic choices like `SQL` → `sequel`, which stay scenario-opt-in
+  above. A scenario's own key always wins: declaring `pronunciations: { id: 'id' }` overrides the
+  default back to the literal reading, and declaring any other keys keeps the default alongside
+  them.
 
 ## Handing the browser to a person
 

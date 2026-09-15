@@ -4,6 +4,33 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.11.0
+
+**Narration no longer mispronounces "id."** It was read as the English word "id" (or "it"),
+because nothing told the synthesis engine it was an abbreviation — the underlying HeadTTS
+dictionary even carries a letter-spelled alternate for it that was always silently discarded.
+A small built-in pronunciation dictionary now ships with the recorder, seeded with
+`{ id: 'I D' }` and merged *underneath* whatever a scenario declares in its own
+`pronunciations` field: the substitution logic is unchanged, so a scenario that already
+declares `id` keeps exactly what it declared, and one that wants the literal word back can
+force it with `pronunciations: { id: 'id' }`. The list starts at one entry on purpose — only
+cases that are objectively mispronounced as a different word belong here, not stylistic
+preferences like `SQL` → "sequel", which stays scenario-opt-in. Captions are untouched; the
+substitution only ever reaches the synthesis input.
+
+**A step can now scroll its own result into view.** Clicking something that reveals content
+further down the page — a response panel, a confirmation banner — used to leave it
+off-screen unless the author remembered a separate `Actor.scroll()` step afterward: easy to
+forget, and an extra named beat in the timeline for what is really part of one action.
+`demo.step({ ..., reveal })`, and the matching option on every `Actor` verb, scrolls that
+locator into view immediately after `run()` finishes and before the hold. No `reveal` means
+today's exact behaviour, unchanged. One thing worth knowing: a step's `target` and
+`highlight` (or a camera-zoom step) are measured *before* `run()`, so combining either of
+them with a scroll-causing `reveal` on the *same* step freezes a stale, pre-scroll rect — the
+spotlight or the zoom lands where the target used to be, not where the reveal moved it. Do
+the highlight or zoom on a later step instead; `Actor.scroll` has always had the same
+ordering.
+
 ## 1.10.0
 
 **A demo in your colours.** A Pro licence already bought the closing card; it now buys the
