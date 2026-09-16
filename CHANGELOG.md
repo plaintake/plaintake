@@ -4,6 +4,84 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.12.0
+
+**Camera zoom and the highlight spotlight now frame the revealed position, not the one it was
+scrolled away from.** 1.11.0 shipped `reveal` with a documented workaround: don't also declare
+`target` (for `highlight` or camera zoom) on the same step, because both measured their rect once,
+before `run()` and therefore before `reveal`'s scroll — the spotlight or the zoom confidently
+framed the stale, pre-scroll position. `target` (when declared) is now re-measured, best-effort,
+once `reveal`'s scroll settles, and the settled rect rides on `step.finish` alongside the
+pre-scroll one `step.start` already carried. Camera zoom and `highlight` both prefer it once it's
+written, so declaring the same locator as both `target` and `reveal` on one step is now the
+supported way to have them frame the revealed content — the 1.11.0 workaround is gone. One
+narrower caveat remains: the cursor arrow itself still marks the pre-scroll click position, not
+the settled one.
+
+**The highlight spotlight can now glide to the revealed position, free on every tier.** Framing
+the settled rect fixed *where* the spotlight lands; it didn't make getting there look intentional —
+a step with `target` + `reveal` still cut straight to the settled framing, no matter how the page
+moved to reach it. On a non-click action (`type`/`point`/`scroll`, where the spotlight's own window
+already spans the whole step), the spotlight now glides from the pre-reveal rect to the settled
+one, timed to when the reveal actually finished — computed entirely at render time, an ASS clip
+animated between two frozen rects, the same "frozen numbers, never live" discipline the cursor and
+camera already use. A `click` step still settles instantly: its spotlight is a brief pulse
+bracketing the click, with no real time in that window for motion to read as intentional rather
+than a glitch. A glide also falls back to the instant settle if the reveal finishes too close to
+the window's own edges, or if the pre-reveal position itself had no usable area — both surfaced as
+a `highlight.glideSkipped` diagnostic rather than silently drawn wrong.
+
+**The camera's pan now waits for the reveal to actually finish, not just for the click.** Framing
+the right place was only half the fix. `cameraPlanFromEvents` used to anchor a shot's settle time
+to the cursor's click-anchored arrival, so if `run()` kept the page busy afterward (rendering a
+response panel, say) the camera could finish panning to the settled position *before* the captured
+frames actually showed it — the crop confidently sat over the right spot while, at that point in
+the timeline, the video underneath still showed the old page. The settle time is now the *later*
+of the click and the reveal completing, read from the recorder's own timestamp for when the page
+settled. One edge case is diagnosed rather than silently wrong: a slow reveal on a step immediately
+followed by another can push the settle time up against the next step's own arrival, so it is
+pulled earlier instead, to preserve step order — reported as `camera.compressed`, the existing code
+for a wanted schedule having to give way to keep the tiling valid.
+
+**A failed re-measurement is now a diagnostic, not a silent stale frame.** If the post-reveal
+re-measurement of `target` comes back with no rect, camera zoom and `highlight` would otherwise
+fall back to the pre-reveal rect invisibly — the exact bug this release closes, just silent again.
+A new `target.stale` diagnostic surfaces instead, naming the step and the fact that it was the
+post-reveal probe that failed, not the pre-run one `target.unmeasured` already covers.
+
+**`reveal` and `Actor.scroll` now glide for real, live, during capture — superseding this
+section's own earlier "live browser smooth-scrolling was considered and rejected."** That
+rejection weighed a real cost against a guarantee that, on closer reading, was never actually at
+stake: the byte-reproducibility guarantee this tool makes has only ever covered *re-rendering an
+already-frozen bundle* (`make golden` regenerating the committed bundles byte-for-byte), never
+capture-time determinism — a human-timed interactive recording was never reproducible run to run
+in the first place, on this axis no more than on click latency or real network response timing.
+Camera pan, cursor glide and the highlight spotlight's own glide stay exactly as they were,
+synthesised at render time from frozen rects — a live scroll cannot substitute for any of them,
+because render-time crop/pan synthesis works by cropping pixels a frame already has, and
+off-screen content before a jump was never captured as pixels to crop. `reveal`'s scroll and the
+locator form of `Actor.scroll` now run `smoothScrollIntoView` (`recorder-playwright/src/scroll.ts`):
+a real `requestAnimationFrame` loop writing `scrollTop` directly with a cosine ease, over the
+capture's own genuinely variable-frame-rate screencast. `scroll-behavior: auto !important` is
+unchanged and still does real work — it suppresses the *browser's own* smooth-scroll mechanisms
+(CSS `scroll-behavior: smooth`, a script's `scrollIntoView({behavior: 'smooth'})`), which would
+animate on a timeline this tool does not control; a direct `scrollTop` write is unaffected by that
+property either way.
+
+**`Actor.scroll`'s locator form can now leave breathing room instead of settling flush against the
+edge.** `block: 'start'`/`'end'` name an edge to align to, but `'start'` still landed the target's
+top pixel exactly at the viewport's own top edge — fine as a scroll-bar alignment, cramped for a
+demo where the next beat needs a sliver of the previous content still visible above the target to
+read as continuous rather than a cut. A new `paddingPx` option on `SmoothScrollOptions` (and its
+`ActorStepMeta` mirror, read only by `scroll`) shifts the settled offset inward by that many pixels
+for `'start'`/`'end'`; `'center'` has no edge to pad away from and `'nearest'` doesn't know which
+edge it will land on ahead of time, so both ignore it. Absent means 0 — the exact flush-to-the-edge
+behavior every existing caller already gets. One related bug rode along: the no-op guard used to
+skip the glide whenever the target was already `fullyVisible` anywhere in the viewport, which is
+the right no-op condition for `'nearest'` but wrong for `'start'`/`'center'`/`'end'` — those name a
+specific alignment, and an element that is merely visible, but not yet at that alignment, still
+needs to glide there. The guard is now keyed on the computed target offset alone.
+
 ## 1.11.0
 
 **Narration no longer mispronounces "id."** It was read as the English word "id" (or "it"),
