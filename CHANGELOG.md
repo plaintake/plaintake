@@ -4,6 +4,38 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.13.0
+
+**Long narration lines are now split before synthesis, and a stall that survives anyway is a
+diagnostic instead of an invisible defect.** A subtitle read out by a real demo surfaced an
+unnaturally long stall mid-sentence. It was not the obvious suspect: rewriting the line to remove
+every symbol changed nothing, and the stall reproduced with unrelated words at the same rough
+position — measured, by decoding the actual waveform rather than trusting the model's own
+self-reported word timings (which turned out not to describe where the silence really fell), as a
+genuine ~300-500ms near-total-silence stretch inside what Kokoro synthesises for a sentence of
+roughly 11+ words, present under both q8 and fp32 weights alike. It is a content-dependent quirk in
+the model's duration prediction, not a PlainTake bug with a clean root cause to fix at the source.
+Narration is now split into clause-sized pieces before synthesis (`splitNarration`, punctuation
+boundaries first, a word-count cut only where a clause has none) and rejoined afterward
+(`mergeClips`) — every clause-punctuated sentence tested came back clean once split. Because a
+short chunk is not a *guarantee* against the same defect, each chunk is also scanned
+(`detectPauses`) for a sustained near-silence no word boundary explains, and a survivor is reported
+as `speech.pause` rather than shipped silently — the same shape `target.stale` and
+`highlight.glideSkipped` already use for "this could not be fixed automatically, a human should
+look." `SPEECH_ENGINE_VERSION` moved to `'2'`, since this changes what a cached line sounds like
+without changing the model, the voice, or the dictionary that already governed that constant.
+
+**Joining split narration back together no longer stacks two chunks' silence into one long
+pause.** The first version of the fix above concatenated chunks with no gap of its own, on the
+assumption that a chunk's lead-in silence alone would read as the breath between chunks once
+joined. Re-recording a real demo and decoding the merged waveform (rather than trusting that
+assumption) showed the previous chunk's own trail-out silence stacks on top of the next chunk's
+lead-in at every seam — consistently ~700-900ms, landing at the exact point a sentence had been
+split, which measured worse than the stall this splitting exists to avoid. `synthesizeChunked` now
+trims each seam-facing edge down to a small fixed buffer before joining (`trimSilence`,
+waveform-based like `detectPauses`, never touching a clip's outermost lead-in or trail-out), so a
+seam reads as one more ordinary stop-consonant closure rather than an edit.
+
 ## 1.12.0
 
 **Camera zoom and the highlight spotlight now frame the revealed position, not the one it was
