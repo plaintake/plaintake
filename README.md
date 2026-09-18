@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.13.0
+VERSION=1.14.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -391,7 +391,8 @@ Stated up front rather than discovered later:
   dictionaries the other languages need are eSpeak-derived, and GPL), so a non-English scenario
   gets captions and no voice rather than an accent reading the wrong sounds. Speed is a
   scenario-level `speech.speed` dial (0.5–2.0×), not a per-step or per-voice one; no pitch, no
-  SSML. A video that talks
+  SSML — bar one in-line `[pause]` marker that breaks a long line where the voice would
+  otherwise mistime it (stripped from the caption). A video that talks
   is longer than the same demo recorded silent, because each step waits for its line to finish.
 - **macOS arm64 and Linux x64 only.** No Windows build. No macOS Intel build.
 - **Chromium only**, one tab, one page.

@@ -4,6 +4,51 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.14.0
+
+**A `[pause]` you write in a subtitle now forces the break where you want it.** The automatic
+clause-split shipped in 1.13.0 is best-effort — it guesses split points from clause punctuation, so a
+long line can still stall at a place no comma explains, which is what the `speech.pause` diagnostic
+reports. `[pause]` is the manual override for exactly that line: written inline in a `subtitle` (or an
+`intro.narration`), it forces the synthesiser to break there, so each side is synthesised on its own
+and the model can no longer misalign across it. It is stripped from the caption — never shown, never
+spoken, the same "affects speech, not caption" rule the pronunciation dictionary follows — and marks
+a place, not a length: there is no `[pause 400]`, and a marker carrying an argument, or an unmatched
+`[pause`, is refused at record time with the step named. Each side still runs the whole-line →
+nudge → split ladder, so a marked line composes with the automatic handling rather than replacing it.
+Not available inside `demo.explain` (spoken by the separate plainmotion toolchain, which has no
+split machinery); a marker there is stripped rather than honoured. See `docs/scenarios.md` →
+Narration breaks.
+
+**The vendored worker now pins ONNX Runtime to the single-threaded execution the engine already
+intended.** `SpeechEngine` sends the worker `threads: 1` and its own comment calls the session
+"single-threaded", but the worker never passed a thread count to `from_pretrained`, so intra-op
+parallelism ran at ONNX Runtime's default — multi-threaded on a multi-core host. The worker now sets
+`session_options` with `intraOpNumThreads`/`interOpNumThreads: 1` and sequential execution, which is
+what `make reproduce-container` assumes and removes multi-threaded float-reduction order as a source
+of run-to-run drift on hosts where it was engaged. `SPEECH_ENGINE_VERSION` bumped to re-synthesise
+cached clips under the pinned worker. Note this is not a complete determinism guarantee: Kokoro's
+duration predictor still shows some run-to-run variation in a long clause's later word timings
+independent of thread count, so a re-render is not yet bit-identical; the practical effect measured
+on a real demo is that total within-word silence lands within a few percent of a known-good earlier
+render rather than the 3× worse a bad synthesis run had frozen into the cache.
+
+**`plaintake warm` moves narration synthesis off the recording's critical path.** Synthesis runs
+while the screencast is rolling — a clip is produced during the step that speaks it — so a
+cache-cold recording (a fresh machine, CI, or the first render after the `SPEECH_ENGINE_VERSION`
+bump above) records each synthesis stall into the video as extra silence between spoken lines. One
+real demo came out ~2.4 minutes longer than the same scenario from a warm cache, the whole
+difference in those gaps, with the narration audio itself byte-for-byte identical. Recording now
+writes a `speech/narration.index.json` into the bundle — the exact synthesis *inputs* (the line, its
+`[pause]` split, a non-default voice, the run's speed and dtype), never the audio — and
+`plaintake warm <bundleDir>` replays them through the same narrator with no browser and no target
+app, filling `~/.cache/plaintake/speech` so the next recording is all cache hits and its length is a
+function of the demo rather than of the machine. Because the index is inputs, warming combines them
+with whatever engine identity the current build carries: the text is unchanged across a version
+bump, so warming a bundle recorded before the bump fills the cache the re-record will look in, and a
+brand-new scenario warms from its own `check` bundle. CLI-only, like `prune` and `import` — the MCP
+tool list stays at four. See `docs/scenarios.md` → Warming the speech cache.
+
 ## 1.13.0
 
 **Long narration lines are now split before synthesis, and a stall that survives anyway is a

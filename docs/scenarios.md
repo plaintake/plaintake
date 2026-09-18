@@ -78,7 +78,7 @@ Playwright `Page`) and `baseURL` (the string passed to `--base-url`/`fixture`).
 | Method | Signature | Purpose |
 |---|---|---|
 | `chapter` | `(title: string) => Promise<void>` | Marks a chapter boundary on the timeline. Holds an establishing beat before the next step starts. The MP4 chapter markers derived from the events are free on every tier. |
-| `step` | `({id, title, subtitle?, target?, action?, highlight?, holdMs?, run}) => Promise<void>` | The unit of narrated action. `run` performs it; `target` (a `Locator`) is recorded for the cursor/camera/highlight to read, never used to act; `action` (`'click' \| 'type' \| 'point'`) tells the cursor what to draw; `highlight` (`boolean \| { label? }`) dims everything but `target` — see [Highlighting](#highlighting). |
+| `step` | `({id, title, subtitle?, target?, action?, highlight?, holdMs?, run}) => Promise<void>` | The unit of narrated action. `run` performs it; `subtitle` is both the on-screen caption and the spoken line — you may write a `[pause]` in it to break a long line (see [Narration breaks](#narration-breaks)); `target` (a `Locator`) is recorded for the cursor/camera/highlight to read, never used to act; `action` (`'click' \| 'type' \| 'point'`) tells the cursor what to draw; `highlight` (`boolean \| { label? }`) dims everything but `target` — see [Highlighting](#highlighting). |
 | `assert` | `({id, title, run}) => Promise<void>` | A checked expectation. A rejection fails the run; it does not stop the recording. |
 | `mask` | `({id, selector, reason?}) => Promise<void>` | Hides a CSS selector's contents in every frame it could appear in, from the moment it is registered — register it *before* the element exists so nothing is ever visible. A selector, not a `Locator`, is what makes that possible. |
 | `waitFor` | `({id, title, until, timeoutMs?}) => Promise<void>` | Waits on a condition that prompts nobody — a push notification, an emailed link, a background job. Needs no window and no terminal; works headless and in CI. |
@@ -280,7 +280,9 @@ carries this harmlessly.
 This is scenario-level only: there is no per-step override and no `--speed` CLI flag. Voice
 *did* become per-step (see below) because a switched voice is a lookup into a set pre-loaded at
 engine-open, already paid for by the declaration; speed has no such set, and one multiplier per
-recording is the dial anyone has asked for. Pitch and SSML are likewise out of scope.
+recording is the dial anyone has asked for. Pitch and general SSML are out of scope — the one
+in-line control is the `[pause]` break marker (see **Narration breaks** below), a single,
+bounded place-marker with no length and no other markup.
 
 ## Multiple voices
 
@@ -335,6 +337,71 @@ the whole words you list.
   above. A scenario's own key always wins: declaring `pronunciations: { id: 'id' }` overrides the
   default back to the literal reading, and declaring any other keys keeps the default alongside
   them.
+
+## Narration breaks
+
+```ts
+subtitle: 'Applying a set stacks its grants [pause] alongside anything else granting the flag.',
+```
+
+Write `[pause]` inside a `subtitle` (or an `intro.narration`) to force the voice to break there.
+It exists for one specific problem: on a long line, Kokoro occasionally drops a ~300–500 ms
+near-silence at the *wrong* word — a quirk of the model's own timing, not of your punctuation.
+PlainTake already tries to repair that automatically and warns with `speech.pause` when it
+can't (see below); `[pause]` is the manual override for when it can't. Each side of the marker
+is synthesised on its own, so the model can no longer stall across it, and the breath lands
+exactly where you put it.
+
+- **It is stripped from the caption.** `[pause]` is never shown on screen and never spoken — the
+  caption reads `…its grants alongside…`, the same "affects speech, not caption" rule the
+  pronunciation dictionary follows. A marker adjacent to a word (`grants[pause]alongside`)
+  implies a word boundary, so it also reads as a space in the caption.
+- **Place only, no length.** There is no `[pause 400]` — a break marks *where* the line breaks,
+  not for how long; the pause is the same natural breath PlainTake keeps at an auto-split
+  sentence. A marker carrying an argument, or an unmatched `[pause`, is refused at record time
+  with the step named.
+- **Each side still auto-repairs.** A segment that is itself long and stalls goes through the
+  same whole-line → nudge → split ladder, so `[pause]` composes with the automatic handling
+  rather than replacing it.
+- **Not in explain scenes.** `demo.explain` narration is spoken by the separate plainmotion
+  toolchain, which has no split machinery; a `[pause]` there is stripped (never shown, never
+  spoken) but buys no break. Anchor an explain scene's timing with its `atPhrase` cues instead.
+
+Reach for it sparingly — a line short enough not to stall never needs one, and rewording is
+often clearer than marking. It is the escape hatch for the long line the model mistimes.
+
+## Warming the speech cache
+
+```sh
+plaintake warm ./out/my-demo       # then re-record into the same place
+plaintake run  my-demo.demo.ts --output ./out/my-demo --base-url http://localhost:3000 --speech on
+```
+
+Synthesis runs *while the browser is being recorded* — each line is spoken during the step that
+narrates it, so a clip that has to be synthesised then is time the camera is filming. Every line is
+cached (`~/.cache/plaintake/speech`), so this only bites when the cache is **cold**: a fresh
+machine, CI, or the first run after PlainTake changes how a line sounds (a new voice model, or the
+internal speech-engine version). A cold recording pads the video with those synthesis stalls — the
+gaps *between* spoken lines stretch, and a long demo can come out minutes longer than the same
+scenario recorded against a warm cache, with the narration itself unchanged.
+
+`plaintake warm <bundleDir>` fixes that ahead of time. Every recording made with `--speech on`
+writes a `speech/narration.index.json` into its bundle — the lines it synthesised, with their
+`[pause]` splits and any non-default voice. `warm` reads that index and re-synthesises each line
+into the shared cache **with no browser and no target app**, so the next recording finds every clip
+already made and its length depends on the demo, not on the machine.
+
+- **After a version bump or on a new machine:** `warm` the previous bundle, then re-record. The text
+  has not changed, so warming fills the exact cache entries the re-record will look for.
+- **A brand-new scenario** has no prior bundle: run `plaintake check` once (it records and asserts
+  without rendering — a cold synthesis there pads nothing you keep), then `warm` that bundle, then
+  `run`.
+- **It needs the voice model installed**, because it synthesises — unlike `verify` or `render`. A
+  bundle recorded without `--speech on` has no index and nothing to warm.
+
+Warming is optional: a normal `run` still works cold, just slower and with a looser-paced video the
+first time. It is CLI-only — there is no MCP tool for it — because it is a local performance step,
+not a recording operation.
 
 ## Handing the browser to a person
 

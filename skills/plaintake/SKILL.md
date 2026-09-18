@@ -126,6 +126,9 @@ precedence; a source checkout needs it installed in your project.
 5. **`--voice` requires `--speech on`** — refused, not ignored.
 6. **Set `holdMs` and speakable subtitles.** Narration runs ≈20 characters/second with a
    1200 ms floor; without holds the video is a frozen frame with captions scrolling over it.
+   On a long line the voice can drop a silence at the wrong word — write a `[pause]` in the
+   `subtitle` to force the breath where you want it (stripped from the caption; place-only, no
+   length). See `docs/scenarios.md` → Narration breaks.
 7. **Register `demo.mask` before the element exists**, with a CSS selector, not a Locator —
    that is what keeps the secret out of every frame.
 8. **Determinism: no `Date.now()`, `Math.random()`, or external network**, and erasable
