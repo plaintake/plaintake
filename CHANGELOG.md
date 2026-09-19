@@ -4,6 +4,25 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.15.0
+
+**A rare word-timing glitch from the speech worker no longer makes a narration line permanently
+uncacheable.** The vendored text-to-speech worker occasionally reports a `null` duration for a word
+that straddles a token boundary — measured on a line reading out "The NABARD entity - NABFINS - is
+filled in ...". PlainTake passed that `null` straight into the clip's stored word timings, where it
+was corrosive out of all proportion to how rare it is: the clip cache *writes* the clip but *refuses
+to read one back* whose timings contain a non-finite value, so that one line was re-synthesised on
+every record and every `plaintake warm` — never cached, however many times it was warmed. Left
+uncached, it is synthesised fresh while the screencast is rolling, where CPU contention can inflate
+it well past its reserved window and freeze the step on a silent frame (one real demo stalled the
+video by ~10 s on that single line). The worker's word timings are now coerced to finite numbers at
+the one seam where they become a clip — a missing duration becomes the gap to the next word's start,
+a missing start repeats the previous one — so no stray `null` can make a line uncacheable, and
+`plaintake warm` actually warms it. Well-formed timings pass through untouched, so nothing else
+changes and no cached clip is invalidated: `SPEECH_ENGINE_VERSION` is deliberately unchanged, because
+the synthesised audio is byte-for-byte identical and only the stored timing metadata of a
+previously-unstorable line differs.
+
 ## 1.14.0
 
 **A `[pause]` you write in a subtitle now forces the break where you want it.** The automatic
