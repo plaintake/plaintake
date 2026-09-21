@@ -4,6 +4,24 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.15.1
+
+**A recording that stalls on cold-cache narration can now fail loudly instead of quietly shipping a
+paused video.** `plaintake run` synthesises narration while the screencast is rolling. When the clip
+cache is cold for a line — the ordinary case for a demo with narration no earlier bundle ever warmed,
+such as a longer multi-actor flow — that synthesis lands on the capture's critical path, where CPU
+contention can inflate a normally sub-second synthesis to ten seconds or more, past the window the
+timeline reserved for the line, and freeze the step on a silent frame. (1.15.0 closed only the
+sub-case where warming could *never* help; a plain cold cache still stalled.) PlainTake already
+reported this as a `speech.slow` diagnostic, but only as a note beside a rendered video, so a stalled
+recording shipped with exit 0. Now `run` prints an actionable remedy naming the bundle — warm the
+clip cache with `plaintake warm <bundle>` and re-record — whenever a line outran its reserved window,
+and the new `run --fail-on-stall` turns that stall into a non-zero exit (3) so a script or CI can gate
+on it rather than publish a video that is longer than it was written to be. Off by default: a stall is
+a report about the machine, not the scenario, so a plain `run` still leaves the video it recorded.
+Nothing in the render path changed and no audio changed — `SPEECH_ENGINE_VERSION` is unchanged and the
+committed golden bundles regenerate byte-for-byte.
+
 ## 1.15.0
 
 **A rare word-timing glitch from the speech worker no longer makes a narration line permanently
