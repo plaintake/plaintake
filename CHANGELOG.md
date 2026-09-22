@@ -4,6 +4,68 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.16.0
+
+**A failed run now tells the truth about the recording it failed on.** A run whose assertions
+all passed but whose page logged one disallowed console error used to report `status: failed`
+with zero captions, zero chapters, zero narrated lines and an empty diagnostics list — the
+numbers were hardcoded zeros in the CLI's error path, so a rich, mostly-successful recording
+surfaced as an empty one. Now the failure result carries the recording's real counts, the
+reasons list every failed assertion id and then every unexpected console error text, and the
+half-finished bundle is preserved beside the output as `<output>.failed` instead of being
+cleaned away — the diagnostic evidence survives the failure. The same applies when rendering
+fails after a green recording: assertions stay visible in the result and no `.partial` debris
+is left behind. `examples/console-noise.demo.ts` demonstrates the shape end to end.
+
+**A re-run no longer destroys the recording it replaces.** `run` (and `check`) into an
+existing `--output` moves the previous bundle aside to `<output>.<timestamp>` before
+recording starts, instead of deleting it — a worse take can no longer erase a better one, and
+the result reports where the old bundle went (`archivedPath` in `--json`; the path is absent
+when there was nothing to archive, so older results still parse). Archives are real bundles:
+`verify` and `inspect` work on them, and `prune` cleans them through the same discovery as
+any other bundle, so they cannot pile up for ever. `run --no-archive` asks for the old
+replace semantics back, for scratch output directories where archives would only be noise.
+
+**`validate` refuses machine-specific absolute paths.** A scenario containing
+`/Users/you/fixtures/tenant.json` works on the machine that wrote it and fails on every other
+— and before this, nothing caught it until the recording was already running somewhere else.
+`validate` now collects every offending line (one refusal listing all of them, with line
+numbers and the fix, not one run per path) and exits 2 before a browser opens. Relative
+paths and `import.meta.dirname` joins are the supported shape; URLs pass untouched.
+
+**A damaged speech-cache entry is reported instead of silently re-synthesised.** The clip
+cache could hold a present-but-unreadable entry (a half-written JSON sidecar, a truncated
+WAV) whose only symptom was that the line was mysteriously re-synthesised on every run. The
+cache read now distinguishes hit / miss / damaged; a damaged entry is repaired —
+re-synthesised and overwritten, so one occurrence is self-healing — and reported as a
+`speech.cache.corrupt` diagnostic naming the entry. An entry that recurs is a failing disk,
+which is exactly what the diagnostic is there to make visible. Separately, a failure to close
+the speech worker after a successful capture used to be able to mask the capture's own error;
+it now surfaces as a `speech.close` diagnostic that can never displace the original failure.
+
+**A cold cache announces itself, and a broken speech bundle refuses to publish.** When the
+first synthesised lines of a run all miss the clip cache — the machine is cold, and every
+line is paying full synthesis while the screencast runs — the result now carries a
+`speech.cold` diagnostic naming `plaintake warm` as the fix, rather than leaving coldness to
+be inferred from a slow, loose-paced video. And before a bundle is published, the run checks
+its own end state: a speech track referencing a clip file the bundle does not contain, or a
+synthesised line missing from the narration index, is a refusal naming the mismatch — a
+video with a hole in its narration is re-made, not shipped.
+
+**A narration stress corpus now guards the speech path, and the guide gained a patterns
+page.** `fixtures/narration/` carries synthetic stress-equivalent indexes (committed; real
+customer narration stays local-only by design — see `fixtures/narration/README.md`), unit-
+tested in every `pnpm test` run, with an opt-in `make speech-corpus` that sweeps them — and
+any local real indexes — through the real engine to assert zero stalls. The published guide's
+new `docs/patterns.md` collects the app-side recipes `validate` cannot enforce: idempotent
+seeding, Mailpit OTP polling (poll, never single-shot), persona switching, and
+`allowedConsoleErrors` hygiene. A design doc for a future `plaintake publish` (attaching a
+bundle to a Jira issue) is committed under `docs/superpowers/specs/`; it ships no behaviour.
+
+Nothing in the render path changed and no audio changed — `SPEECH_ENGINE_VERSION` is
+unchanged, the manifest carries no new fields, and the committed golden bundles regenerate
+byte-for-byte.
+
 ## 1.15.1
 
 **A recording that stalls on cold-cache narration can now fail loudly instead of quietly shipping a

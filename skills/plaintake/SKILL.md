@@ -134,7 +134,9 @@ precedence; a source checkout needs it installed in your project.
 8. **Determinism: no `Date.now()`, `Math.random()`, or external network**, and erasable
    TypeScript only (no `enum`, `namespace`, parameter properties, decorators) — `validate`
    names the offender before a browser opens. Pass `{ timeout: 0 }` to Playwright calls
-   inside `until`, so the DSL's `timeoutMs` governs.
+   inside `until`, so the DSL's `timeoutMs` governs. No machine-specific absolute paths
+   (`/Users/you/...`) either — `validate` refuses them by line number; load fixtures with
+   `import.meta.dirname` joins instead.
 9. **Content revealed by an action isn't scrolled into view automatically.** A click that
    renders a response panel further down the page leaves it off-screen unless the step also
    scrolls it. Set `reveal` on that same step instead of bolting on a separate
@@ -148,6 +150,9 @@ precedence; a source checkout needs it installed in your project.
 ## Deeper reference
 
 Full DSL — metadata, `preflight`/`warmup`, the `intro` card, camera framing, handoff modes:
-<https://github.com/plaintake/plaintake/blob/main/docs/scenarios.md>. Metadata schema:
+<https://github.com/plaintake/plaintake/blob/main/docs/scenarios.md>. App-side recording
+patterns — idempotent seeding, Mailpit OTP polling, persona switching, console-error
+hygiene:
+<https://github.com/plaintake/plaintake/blob/main/docs/patterns.md>. Metadata schema:
 <https://github.com/plaintake/plaintake/blob/main/schema/scenario.schema.json>. When in
 doubt, the MCP tool descriptions and `plaintake --help` are authoritative.

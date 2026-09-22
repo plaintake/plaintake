@@ -70,6 +70,15 @@ export default defineDemo({
 The machine-readable version of this table is
 [`schema/scenario.schema.json`](../schema/scenario.schema.json).
 
+`allowedConsoleErrors` takes the exact strings the app itself prints — never a prefix or a
+pattern. Anything else in the console fails the run, and the failure is truthful about what
+happened: the result carries the recording's real numbers (captions, chapters, narrated
+lines) rather than zeros, the reasons list every failed assertion id and then every
+unexpected console error text, and the half-finished bundle is kept beside the output as
+`<output>.failed` — the diagnostic evidence survives instead of being cleaned away. The same
+applies when rendering fails after a green recording: the assertions stay visible in the
+result, and the bundle is left at `.failed` for inspection rather than as debris.
+
 ## The `demo` DSL
 
 Everything below is a method on the `demo` object `run()` receives, alongside `page` (a
@@ -115,6 +124,9 @@ Two more hooks can sit beside `run()` in the same `defineDemo()` call:
 - **Erasable TypeScript only** — no `enum`, `namespace`, parameter properties, or decorators.
   Node's type-stripping loader cannot erase them, and `validate` rejects them by name before a
   browser opens.
+- **No machine-specific absolute paths** — `/Users/you/fixtures/data.json` works on the
+  machine it was written on and nowhere else. `validate` refuses them by line number and names
+  the fix: load fixtures relative to the scenario with `import.meta.dirname`.
 
 ## The opening card
 
@@ -398,10 +410,31 @@ already made and its length depends on the demo, not on the machine.
   `run`.
 - **It needs the voice model installed**, because it synthesises — unlike `verify` or `render`. A
   bundle recorded without `--speech on` has no index and nothing to warm.
+- **A cold recording says so.** When the first synthesised lines of a run all miss the cache,
+  the result carries a `speech.cold` diagnostic naming `plaintake warm` as the fix — coldness
+  is reported, not left for you to infer from a slow, loose-paced video.
+- **The bundle is checked before it is published.** A run whose frozen speech track references
+  a clip file the bundle does not contain, or a synthesised line missing from the narration
+  index, refuses rather than publishing a video with a hole in its narration. That recording
+  is re-made, not shipped.
 
 Warming is optional: a normal `run` still works cold, just slower and with a looser-paced video the
 first time. It is CLI-only — there is no MCP tool for it — because it is a local performance step,
 not a recording operation.
+
+## Re-running: archived, not clobbered
+
+A `run` (or `check`) into an existing `--output` moves the previous bundle aside to
+`<output>.<timestamp>` before recording starts, rather than deleting it — the old recording
+survives every re-run by default, so a worse take can never erase a better one. The result
+reports where it went (`archived <path>` in the CLI output; `archivedPath` in `--json`).
+
+Archives are real bundles — they carry `manifest.json`, so `plaintake verify` and `inspect`
+work on them, and `plaintake prune` finds and cleans them through the same discovery as any
+other bundle rather than letting them pile up for ever.
+
+`run`'s `--no-archive` asks for the old behaviour back — delete the previous bundle on
+re-run — for scratch output directories where archives would only be noise.
 
 ## Handing the browser to a person
 
@@ -440,4 +473,6 @@ is) for a field the person fills in.
 The scenario at the top of this file — masks, chapters, steps, an assertion — is a real one;
 its recorded output (stills, captions, manifest) is in [`docs/samples/`](samples/README.md).
 `plaintake validate <file>` checks any scenario, yours included, against everything on this
-page with no browser.
+page with no browser. The recipes for the *application* side of a recording — seeding a
+database, polling a mail server, switching personas — are in [`patterns.md`](patterns.md):
+nothing there is enforceable by `validate`, which is exactly why it is a separate page.

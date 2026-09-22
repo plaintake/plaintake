@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.15.1
+VERSION=1.16.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -499,7 +499,9 @@ are self-contained — `demo_validate`'s description spells out the full `define
 method, and the determinism rules, so an agent that only ever sees the tool list can still
 write a valid one. For more depth than a tool description carries, or for validating outside
 an MCP session entirely, use **[`docs/scenarios.md`](docs/scenarios.md)** (the full DSL
-reference) and **[`schema/scenario.schema.json`](schema/scenario.schema.json)** (the metadata
+reference), **[`docs/patterns.md`](docs/patterns.md)** (app-side recipes `validate` cannot
+check: seeding, mail polling, persona switching) and
+**[`schema/scenario.schema.json`](schema/scenario.schema.json)** (the metadata
 schema as JSON Schema).
 
 **A skill your agent can carry:** [`skills/plaintake/`](skills/plaintake/) is a self-contained
