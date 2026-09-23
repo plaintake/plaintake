@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.19.0
+VERSION=1.20.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -244,8 +244,10 @@ video's sha256, so the same recording always maps to the same URL and republishi
 no-op. The endpoint comes from `--endpoint` or a `publish` block in the same config file
 the branding comes from; the producer key comes from `PLAINTAKE_PUBLISH_KEY`, `--key`,
 or — last — the machine-local `publish.json` that `publish --remember` writes beside
-`license.json` once the service has accepted the key. A key is still never read from a
-config file: config files travel, that credential location does not. CLI-only, like
+`license.json` once the service has proved the key — by accepting an upload, or, on an
+already-shared run, through its identity check, so a rotated key is re-stored by one
+publish with the new `--key` and `--remember`. A key is still never read from a config
+file: config files travel, that credential location does not. CLI-only, like
 `prune` and `import`.
 
 Add `--json` to any command for a machine-readable result on stdout. Diagnostics always go to

@@ -4,6 +4,24 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.20.0
+
+**`plaintake publish` proves the key on an already-shared run, so a rotated key can be
+re-stored.** A dedup hit used to make no authenticated call a service had to answer, so it
+proved nothing — `--remember` refused to store on one, and a key the service had since
+revoked could slip through whenever the bundle had no sidecars left to attach (a bundle
+that did have them already failed on the sidecar POST's 401). Publish now asks the share
+service's identity check, `GET /api/producers/me`, on that path: a 200 is the same proof an
+accepted upload is, so `--remember` stores there too, and a rejected key fails the run as
+exit 2 `unauthorized`, whether or not anything was left to attach. This pairs with key
+rotation on PlainShare (`POST /api/producers/:slug/reissue`, admin-gated): an operator
+re-issues a lost or leaked key on the same producer — same slug, same ownership of every
+video — and one `plaintake publish <bundle> --key sk_new… --remember` re-stores it, with no
+new content needed. **The share service must implement `GET /api/producers/me`**; against
+one that does not, an already-shared run now fails as `unexpected-response` (exit 1).
+`remembered: false` in the `--json` envelope now means one thing only: the key file could
+not be written.
+
 ## 1.19.0
 
 **`plaintake publish --remember` stores the producer key for next time.** The key lands in
