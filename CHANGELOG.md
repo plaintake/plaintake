@@ -4,6 +4,78 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.18.0
+
+**`plaintake publish` turns a finished bundle into a share link.** `plaintake publish
+<bundleDir> --endpoint <url>` uploads the video with its captions and chapter marks to a
+share service and prints the URL viewers open — a page with the video, a clickable
+transcript and a seekable chapter list, no account needed. The service is generic (any
+producer with a captioned, chaptered MP4 speaks the same protocol); PlainTake is its first
+client. What leaves the machine is exactly the viewer-facing material: `output/demo.mp4`,
+`captions/captions.vtt`, the chapter marks, dimensions and duration from the render plan, a
+title from the scenario id, and — when FFmpeg is on PATH — a poster frame grabbed into a
+temp dir, never into the frozen bundle. No trace, no events, no scenario source. The share
+id is derived from the MP4's sha256, so the same bundle always maps to the same URL and
+republishing is a no-op (`uploaded: false`, still exit 0); the service verifies the digest
+against the received bytes, so a lying manifest fails as exit 6, the same class `verify`
+reports. The endpoint comes from `--endpoint` or a new `publish` block in
+`plaintake.config.json`; the producer key comes from `PLAINTAKE_PUBLISH_KEY` or `--key` —
+deliberately never a config field, because a key on disk is a key in every backup. CLI-only
+like `prune` and `import`: the MCP tool list stays frozen at four, and publishing joins
+`activate` and `install-voice` as the third user-initiated network call.
+
+## 1.17.0
+
+**`plaintake compare` surfaces the render-determinism gate as a command.** Two renders that
+should be byte-for-byte identical — the same frozen bundle rendered twice, or a regression
+check against a golden render — can now be compared directly: `plaintake compare <bundleA>
+<bundleB>` re-hashes and re-decodes both, checking output SHA-256, decoded frames, ffprobe
+streams, duration and frame count, soft captions, and the normalized manifest. `ok` is the
+verdict — exit 0 only when all six checks pass, exit 6 on drift — the same code `verify` and
+`diff` already use. (Needs FFmpeg, which `diff` — a semantic comparison where drift is an
+expected finding, not a regression — does not.)
+
+**`plaintake init` scaffolds a working scenario in one command.** `plaintake init` then
+`plaintake run demo.demo.ts --output out/demo --fixture` goes green with nothing installed
+but PlainTake itself, driving the bundled fixture app's own `/settings` flow. Swap `--fixture`
+for `--base-url` to record your own app instead. The generated scenario validates by
+construction — the deterministic video contract, no clock, randomness, network or absolute
+paths — and `init` reports the verdict in a `validates` field. An existing
+`plaintake.config.json` is never touched; an existing scenario is never overwritten without
+`--force`.
+
+**Retention gained a size budget, `prune --max-size`, and a config-driven policy.** A bare
+`prune` with no selector now falls back to an optional `retention` block in
+`plaintake.config.json` (`keepLast`, `olderThan`, `maxBytes`); any CLI selector still beats
+the config outright. Age and size are unioned — either can select a bundle for deletion — so
+a young multi-gigabyte bundle is caught by the size cap even if nothing has aged out yet.
+Deletion is otherwise unchanged: explicit `prune --yes`, dry-run by default, nothing pruned
+automatically on a `run`.
+
+**A step that throws mid-capture now publishes a `.failed` bundle instead of empty debris.**
+This is the failure shape a broken deployment usually produces — a selector that never
+appears because the page changed shape, a navigation that errors — and until now it aborted
+with no salvaged evidence and an empty JSON result, unlike a failed assertion, which already
+published `<output>.failed`. The recorder now writes its own summary on the throw path as
+well as on success, and both `run` and `check` salvage a bundle from it: trace, events and
+whatever assertions passed are all kept, and `check --json`'s `assertions` array recovers
+them. A raw capture error now maps to exit 4 (capture) instead of falling through as an
+untyped exit 1 with zero assertions — the honest classification the exit-code table already
+promised. `check` also gained `--no-archive`, matching `run`, so a smoke check repeated into
+a fixed `--output` does not accumulate archives.
+
+**The guide's `patterns.md` gained a "Post-deploy smoke tests" section, and two inaccuracies
+were fixed.** `check --base-url <url> --json` was already fit for use as a blackbox
+post-deploy gate — no FFmpeg, any `http(s)://` target, per-assertion failure messages — and
+the new section documents it: the exit-code table, unattended auth via `preflight` and
+`demo.actor`'s `storageState`, and a security note that a headless trace records typed
+credentials and cookies verbatim. Separately, `waitFor` was documented as re-evaluating
+`until` until it holds; it actually invokes `until` exactly once, so the shipped Mailpit
+example was fixed to poll inside `until` rather than relying on retries that never happened.
+And `validate`'s determinism guidance (no `Date.now`, `Math.random`, network beyond the
+target) was documented as enforced in four places; it is a convention `validate` does not
+check — only erasable TypeScript and portable paths are — and the docs now say so.
+
 ## 1.16.0
 
 **A failed run now tells the truth about the recording it failed on.** A run whose assertions

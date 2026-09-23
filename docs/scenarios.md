@@ -118,9 +118,13 @@ Two more hooks can sit beside `run()` in the same `defineDemo()` call:
   holds the video becomes a frozen frame with captions scrolling over it.
 - **Masks take a CSS selector, not a `Locator`**, so they can be registered before the element
   exists — that is what makes "masked before the secret is ever visible" true.
-- **No `Date.now()`, no `Math.random()`, no external network.** A scenario must be
+- **No `Date.now()`, no `Math.random()`, no external network.** A scenario should be
   deterministic: the same scenario run twice should produce the same ordered steps, captions
-  and assertions.
+  and assertions. Unlike the two rules below, this one is a convention `validate` does not
+  check — a scenario is loaded and executed as a plain Node module, and nothing inspects its
+  source for these calls or fences its network access at record time. Follow it anyway: it is
+  what makes a re-record match the last one, and what makes an assertion mean the same thing
+  against the same app tomorrow that it means today.
 - **Erasable TypeScript only** — no `enum`, `namespace`, parameter properties, or decorators.
   Node's type-stripping loader cannot erase them, and `validate` rejects them by name before a
   browser opens.

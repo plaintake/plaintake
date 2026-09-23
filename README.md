@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.16.0
+VERSION=1.18.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -170,7 +170,9 @@ plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
-plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>] [--yes]
+plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>]
+plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
+                                   [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
 plaintake doctor
 plaintake install-browser
@@ -184,12 +186,13 @@ plaintake --version
 |---|---|
 | `validate` | Loads a scenario and checks it, without opening a browser |
 | `run` | Records, times the captions, renders, hashes, and writes a recording |
-| `check` | Records and asserts without rendering — no FFmpeg needed, fast enough for every pull request |
+| `check` | Records and asserts without rendering — no FFmpeg needed, fast enough for every pull request. `--base-url` takes any URL, a production one included, so the same command gates a deploy: see [`docs/patterns.md`](docs/patterns.md), *Post-deploy smoke tests* |
 | `render` | Re-renders from a recording's frozen plan. No browser, no network, no clock |
 | `verify` | Re-hashes every file against the manifest |
 | `diff` | Semantic diff between two bundles — steps, assertions, target position/name, timing and captions. No frame comparison |
 | `inspect` | Reports the video, captions, chapters, output sizes and toolchain. Read-only |
-| `prune` | Deletes recordings under the working directory, selected by age, count or scenario. Dry-run unless `--yes`. No MCP tool |
+| `publish` | Uploads a recording's video, captions and chapter marks to a share service and prints the viewer link — a page with a clickable transcript and chapter list. The share id is derived from the video's sha256, so republishing is a no-op. No MCP tool |
+| `prune` | Deletes recordings under the working directory, selected by age, size cap, count or scenario. Dry-run unless `--yes`. No MCP tool |
 | `import` | Drafts a scenario from any Playwright `trace.zip` — yours, or a recording's own `trace/`. Placeholder subtitles, no timings, secret-looking values redacted. Review before committing. No MCP tool |
 | `doctor` | Checks FFmpeg, libass, x264 and the filters that are needed, and reports whether the voice model is installed |
 | `install-voice` | Downloads the voice model `--speech on` needs. Once, and only if you want narration |
@@ -230,6 +233,18 @@ working directory, otherwise falls back to this machine's global config. `--conf
 picks a file outright; a missing or invalid one is a usage error rather than a silent
 fallback.
 
+Finished recording and want a link instead of a file attachment? `plaintake publish
+<bundleDir>` uploads the video with its captions and chapter marks to a share service and
+prints the URL viewers open — the video, a clickable transcript and a seekable chapter
+list, no account needed on their side. What leaves the machine is exactly the
+viewer-facing material (`output/demo.mp4`, `captions.vtt`, the chapter marks, dimensions
+and duration, a title from the scenario id, and a poster frame when FFmpeg is installed) —
+never the trace, the events or the scenario source. The share id is derived from the
+video's sha256, so the same recording always maps to the same URL and republishing is a
+no-op. The endpoint comes from `--endpoint` or a `publish` block in the same config file
+the branding comes from; the producer key comes from `PLAINTAKE_PUBLISH_KEY` or `--key`,
+never from a config file. CLI-only, like `prune` and `import`.
+
 Add `--json` to any command for a machine-readable result on stdout. Diagnostics always go to
 stderr, and the two are never mixed.
 
@@ -238,10 +253,10 @@ stderr, and the two are never mixed.
 | 0 | Success |
 | 1 | Scenario or assertion failed |
 | 2 | Invalid arguments |
-| 3 | Missing toolchain dependency |
+| 3 | Environment not ready: missing toolchain, or an unreachable licence or share service |
 | 4 | Capture failure |
 | 5 | Render failure |
-| 6 | Verification or hash failure |
+| 6 | Verification or hash failure — including a publish the share service refused on digest or length |
 
 ### Writing a demo
 
@@ -419,8 +434,15 @@ Stated up front rather than discovered later:
   headless one and asks for `/favicon.ico`. An app without a favicon logs a 404 that fails the
   run; the recorder log explains it, and `allowedConsoleErrors` is where you silence it.
 - **Nothing prunes old recordings on its own.** `plaintake prune` deletes on request — dry-run
-  unless you pass `--yes` — but there is no automatic retention policy and no MCP tool for it.
-  Deleting is a deliberate act, whether that is the TUI's confirmation or `--yes` on the CLI.
+  unless you pass `--yes` — and a `retention` block in the config can shape what it selects
+  (age, size cap, keep-last), but no run ever prunes automatically and there is no MCP tool
+  for it. Deleting is a deliberate act, whether that is the TUI's confirmation or `--yes` on
+  the CLI.
+- **Nothing leaves the machine unless you ask.** Recording and rendering never touch the
+  network. The only calls PlainTake ever makes are the ones you name: `activate` (one Gumroad
+  verification), `install-browser`/`install-voice` (downloads you asked for), and `publish`
+  (an upload you ran). There is no telemetry, and no MCP tool can publish on an agent's
+  behalf.
 - **`import` drafts; it does not finish.** The draft's subtitles are placeholders (captions are
   written by you), timings are defaults, and any value typed into the recorded page is in it —
   redacted only where the field looked secret-bearing, because the trace recorded everything.

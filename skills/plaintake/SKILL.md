@@ -36,9 +36,11 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 | Command | Purpose |
 |---|---|
 | `plaintake validate <file>` | Check a scenario. No browser. Always first. |
+| `plaintake init [<name>]` | Scaffold a starter scenario against the bundled fixture app (plus a starter `plaintake.config.json` when none exists) — then validate it. CLI only. |
 | `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target. |
 | `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
+| `plaintake compare <dirA> <dirB>` | Render-determinism gate: re-hash and re-decode two renders that should be identical — exit 6 on any drift, 0 only on a byte-for-byte match. Needs FFmpeg. CLI only. |
 | `plaintake inspect <dir>` | Summarize a bundle — cues, chapters, narration. |
 | `plaintake import <trace.zip> --output <draft.demo.ts>` | Draft a scenario from any Playwright trace — yours, or a bundle's own `trace/`. CLI only. |
 | `plaintake doctor` / `install-browser` / `install-voice` | Toolchain check / Chromium / voice model. |
@@ -131,12 +133,13 @@ precedence; a source checkout needs it installed in your project.
    length). See `docs/scenarios.md` → Narration breaks.
 7. **Register `demo.mask` before the element exists**, with a CSS selector, not a Locator —
    that is what keeps the secret out of every frame.
-8. **Determinism: no `Date.now()`, `Math.random()`, or external network**, and erasable
-   TypeScript only (no `enum`, `namespace`, parameter properties, decorators) — `validate`
-   names the offender before a browser opens. Pass `{ timeout: 0 }` to Playwright calls
-   inside `until`, so the DSL's `timeoutMs` governs. No machine-specific absolute paths
-   (`/Users/you/...`) either — `validate` refuses them by line number; load fixtures with
-   `import.meta.dirname` joins instead.
+8. **Determinism: no `Date.now()`, `Math.random()`, or external network** — a convention
+   `validate` does not check (a scenario runs as a plain Node module), followed anyway
+   because it is what makes a re-record match the last one. Two related rules `validate`
+   *does* enforce, by line number, before a browser opens: erasable TypeScript only (no
+   `enum`, `namespace`, parameter properties, decorators), and no machine-specific absolute
+   paths (`/Users/you/...` — load fixtures with `import.meta.dirname` joins instead). Pass
+   `{ timeout: 0 }` to Playwright calls inside `until`, so the DSL's `timeoutMs` governs.
 9. **Content revealed by an action isn't scrolled into view automatically.** A click that
    renders a response panel further down the page leaves it off-screen unless the step also
    scrolls it. Set `reveal` on that same step instead of bolting on a separate
