@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.18.0
+VERSION=1.19.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -170,7 +170,7 @@ plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
-plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>]
+plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>] [--remember]
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
                                    [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
@@ -242,8 +242,11 @@ and duration, a title from the scenario id, and a poster frame when FFmpeg is in
 never the trace, the events or the scenario source. The share id is derived from the
 video's sha256, so the same recording always maps to the same URL and republishing is a
 no-op. The endpoint comes from `--endpoint` or a `publish` block in the same config file
-the branding comes from; the producer key comes from `PLAINTAKE_PUBLISH_KEY` or `--key`,
-never from a config file. CLI-only, like `prune` and `import`.
+the branding comes from; the producer key comes from `PLAINTAKE_PUBLISH_KEY`, `--key`,
+or — last — the machine-local `publish.json` that `publish --remember` writes beside
+`license.json` once the service has accepted the key. A key is still never read from a
+config file: config files travel, that credential location does not. CLI-only, like
+`prune` and `import`.
 
 Add `--json` to any command for a machine-readable result on stdout. Diagnostics always go to
 stderr, and the two are never mixed.

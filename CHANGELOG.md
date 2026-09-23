@@ -4,6 +4,19 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.19.0
+
+**`plaintake publish --remember` stores the producer key for next time.** The key lands in
+`publish.json` beside `license.json` (owner-only, `0600`) — the machine-local credential
+location, deliberately outside the config system, so the 1.18 rule still holds verbatim:
+a key is never read from a *config file*, which travels (committed per repo, synced as
+dotfiles) the way that fixed path does not. Key resolution is now `PLAINTAKE_PUBLISH_KEY`,
+then `--key`, then the stored file, with the explicit channels keeping precedence — CI
+publishing by env var is unchanged. The file is written only after the share service has
+accepted the key: an "already shared" run makes no authenticated call (the dedup probe
+carries no key), so it proves nothing and stores nothing, reporting `remembered: false`
+in the `--json` envelope rather than persisting an unproven key.
+
 ## 1.18.0
 
 **`plaintake publish` turns a finished bundle into a share link.** `plaintake publish
