@@ -4,6 +4,22 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.22.2
+
+**Split captions change on the spoken word on lines with a dash, too.** The voice does not
+always split a line into words the way the caption does: it often glues a spaced em dash onto
+the word before it (`entirely —`), and sometimes speaks `I D` as one word rather than two.
+Either one left the voice reporting a different number of word timestamps than the caption
+had words, so the fix in 1.22.1 could not apply: the run reported `speech.unaligned` and the
+second caption of a long line could still appear seconds after the voice had said it. The
+narrator now lines the voice's words up with the caption's by their text rather than by
+counting them, so those lines cut on the spoken word as well. Lines where the voice's words
+really differ from the caption's (a number read out in words, say) still fall back as before,
+with `speech.unaligned`. Audio, the speech cache and every non-narrated plan are unchanged.
+
+As with 1.22.1, a bundle recorded earlier keeps its frozen word timeline — re-record (a warm
+cache costs no synthesis) to pick up the fix.
+
 ## 1.22.1
 
 **Split captions change on the spoken word again when a pronunciation hint changes the word
