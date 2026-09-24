@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.21.0
+VERSION=1.22.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -171,6 +171,7 @@ plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
 plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>] [--remember]
+                                   [--expiry <duration>|none]
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
                                    [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
@@ -247,8 +248,10 @@ or — last — the machine-local `publish.json` that `publish --remember` write
 `license.json` once the service has proved the key — by accepting an upload, or, on an
 already-shared run, through its identity check, so a rotated key is re-stored by one
 publish with the new `--key` and `--remember`. A key is still never read from a config
-file: config files travel, that credential location does not. CLI-only, like
-`prune` and `import`.
+file: config files travel, that credential location does not. Share links never expire by
+default; `--expiry 365d` (or `"expiry": "365d"` in the same `publish.json`) expires the
+link that long after the publish, republishing refreshes the clock, and `--expiry none`
+opts one run out of the stored policy. CLI-only, like `prune` and `import`.
 
 Add `--json` to any command for a machine-readable result on stdout. Diagnostics always go to
 stderr, and the two are never mixed.

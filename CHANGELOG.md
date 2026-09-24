@@ -4,6 +4,28 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.22.0
+
+**Share links can expire.** `plaintake publish --expiry 365d` (the same `s`/`m`/`h`/`d`
+grammar `--older-than` speaks) expires the link that long after the publish, and the run
+prints the date it dies — `expires 2027-09-24` — with the exact instant in `--json`. The
+policy can live in the machine-local `publish.json` beside the stored key
+(`{ "key": "sk_…", "expiry": "365d" }`, either field optional), so every share from one
+machine carries it without a flag; `--expiry none` opts a single run out of the stored
+policy. Republishing re-asserts the policy and so refreshes the clock: a 365-day share
+republished today dies 365 days from today. `--expiry` with `--remember` stores the policy
+beside the key; `--remember` alone preserves what is already there. **Links never expire
+unless asked** — no flag and no stored policy is exactly the pre-1.22 behavior, and an
+expired link answers 410 on the service side (restorable within its grace window).
+
+Two edges worth naming. `publish.json` is now read on every publish — it carries the
+expiry policy, not just the key — so a file that exists but is malformed (including an
+`expiry` that is not `<n><unit>`) fails the publish naming the file, exit 2, reason
+`invalid-store`, rather than being ignored while a key comes from the environment; a
+bare number like `"365"` is exactly the typo this catches, because it must never quietly
+mean "never". And the expiry instant is computed once per exchange and carried on both
+the upload and the sidecars call, so the two can never disagree.
+
 ## 1.21.0
 
 **The video is named for its scenario.** A run of `create-api-key.demo.ts` (id
