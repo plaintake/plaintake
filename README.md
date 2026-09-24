@@ -13,7 +13,7 @@ it was made. Re-run it after a UI change and you get the same demo again, update
 
 Each run produces:
 
-- `demo.mp4` — one H.264 video, captions as a selectable track by default, or `--subtitles
+- `<scenario-id>.mp4` — one H.264 video, captions as a selectable track by default, or `--subtitles
   hard` to burn them into the pixels instead
 - `captions.srt`, `captions.vtt`, `captions.ass` — standalone caption files
 - an evidence bundle: the scenario source, the raw capture, a Playwright trace, the semantic
@@ -91,7 +91,7 @@ Intel build.
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.20.0
+VERSION=1.21.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
 curl -LO $BASE/SHA256SUMS
@@ -237,7 +237,7 @@ Finished recording and want a link instead of a file attachment? `plaintake publ
 <bundleDir>` uploads the video with its captions and chapter marks to a share service and
 prints the URL viewers open — the video, a clickable transcript and a seekable chapter
 list, no account needed on their side. What leaves the machine is exactly the
-viewer-facing material (`output/demo.mp4`, `captions.vtt`, the chapter marks, dimensions
+viewer-facing material (`output/<scenario-id>.mp4`, `captions.vtt`, the chapter marks, dimensions
 and duration, a title from the scenario id, and a poster frame when FFmpeg is installed) —
 never the trace, the events or the scenario source. The share id is derived from the
 video's sha256, so the same recording always maps to the same URL and republishing is a
@@ -339,7 +339,7 @@ artifacts/create-api-key/
 ├── events/events.ndjson        what happened, and when
 ├── captions/captions.{srt,vtt,ass}
 ├── render/render-plan.json     the frozen plan, including the FFmpeg arguments used
-├── output/demo.mp4             the one video, in the mode you asked for
+├── output/create-api-key.mp4   the one video, in the mode you asked for
 ├── logs/                       one log per FFmpeg run
 ├── manifest.json               a SHA-256 of every file
 └── manifest.sha256             a hash of the manifest itself

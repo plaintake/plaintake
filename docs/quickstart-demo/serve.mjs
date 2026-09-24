@@ -9,7 +9,7 @@
  * in test/integration/release-docs.spec.ts):
  *
  *   /assets/fonts/NotoSans-Regular.ttf  -> <repo>/assets/fonts/NotoSans-Regular.ttf
- *   /assets/example-demo.mp4            -> <repo>/artifacts/release-approval/output/demo.mp4
+ *   /assets/example-demo.mp4            -> <repo>/artifacts/release-approval/output/release-approval.mp4
  *
  * Usage: node serve.mjs [--port 4173]   (or QUICKSTART_PORT=…)
  */
@@ -25,7 +25,7 @@ const PAGES = join(HERE, 'pages');
 
 const MOUNTS = new Map([
   ['/assets/fonts/NotoSans-Regular.ttf', join(REPO, 'assets', 'fonts', 'NotoSans-Regular.ttf')],
-  ['/assets/example-demo.mp4', join(REPO, 'artifacts', 'release-approval', 'output', 'demo.mp4')],
+  ['/assets/example-demo.mp4', join(REPO, 'artifacts', 'release-approval', 'output', 'release-approval.mp4')],
 ]);
 
 const MIME = {

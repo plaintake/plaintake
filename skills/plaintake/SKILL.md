@@ -8,7 +8,8 @@ description: Use when the user wants to create, record, re-render, or verify a P
 ## Overview
 
 PlainTake turns a committed TypeScript scenario into one deterministic browser demo video —
-1920×1080 @ 30 fps H.264 `demo.mp4` with captions by default, or 9:16/1:1 via `--aspect`
+1920×1080 @ 30 fps H.264, named for the scenario (`output/<scenario-id>.mp4`), with
+captions by default, or 9:16/1:1 via `--aspect`
 (render-time only, never a re-record) — locally, no network at render time. The loop: write
 the scenario, `validate` (no browser), `run` (records), `verify`; `render` re-renders a bundle
 later without a browser.
@@ -50,7 +51,8 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
   `5` render · `6` hash.
 - Bare `plaintake` and `--help` print usage and exit `2` — on a pipe that is the design, not
   a failure.
-- The video lands at `<output>/output/demo.mp4`, beside `captions/captions.{srt,vtt,ass}`,
+- The video lands at `<output>/output/<scenario-id>.mp4` (`demo.mp4` in bundles recorded
+  before 1.21), beside `captions/captions.{srt,vtt,ass}`,
   `manifest.json` and the Playwright `trace/` (no trace for handoff runs).
 - `plaintake import` drafts with placeholder subtitles and whatever the trace recorded being
   typed — secret-looking fields are redacted, everything else lands verbatim. Read the draft

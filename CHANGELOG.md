@@ -4,6 +4,27 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.21.0
+
+**The video is named for its scenario.** A run of `create-api-key.demo.ts` (id
+`create-api-key`) now writes `output/create-api-key.mp4` instead of the anonymous
+`output/demo.mp4` every bundle shared until now — the file keeps its name when it leaves
+the bundle, so three attachments in a thread are three demos rather than three
+`demo.mp4`s. The name is frozen once, at record time, into the render plan's own
+`outputPath` field (from the scenario id, whose lowercase-kebab schema rule is what the
+path is validated against), and everything downstream follows the frozen name: a
+`render` in the other subtitle mode, a `render --aspect` re-cut and a multi-actor splice
+all write the same file in place, exactly one video per bundle, and `verify`, `publish`,
+`inspect` and the desktop player read the path from the manifest rather than a constant.
+**Bundles recorded before 1.21 keep `output/demo.mp4` forever** — the name has been read
+back out of each bundle's frozen FFmpeg arguments since the first naming change, so an
+old bundle re-renders and re-cuts to its own name unchanged; nothing is orphaned, because
+the after-render sweep now clears every MP4 in `output/` except the one just written. One
+consequence to name comparisons by: `plaintake compare` on a pre-1.21 bundle against a
+1.21 re-record of the same scenario now reports the differing file set (`demo.mp4` vs
+`<scenario-id>.mp4`) as a difference in its own right — correct, and worth knowing before
+it reads like drift.
+
 ## 1.20.0
 
 **`plaintake publish` proves the key on an already-shared run, so a rotated key can be
