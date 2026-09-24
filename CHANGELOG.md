@@ -4,6 +4,23 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.22.1
+
+**Split captions change on the spoken word again when a pronunciation hint changes the word
+count.** A pronunciation substitution that speaks one caption word as several — the built-in
+`id` -> `I D`, any respelling into more or fewer words, or a muted word — made the voice report a different number of word timestamps than
+the caption had words. The caption planner then refused to cut on word boundaries and fell back
+to sharing the whole step between the pieces of a long line, hold included, so the second
+caption of a line could appear seconds late, after the voice had already said it (the run
+reported this as `speech.unaligned`). The narrator now maps the voice's word timeline back onto
+the caption's own words before recording it, so every split cue opens when its first word is
+spoken, whatever the pronunciation dictionary did. Audio, the speech cache and every
+non-narrated plan are unchanged.
+
+A bundle recorded before 1.22.1 keeps the word timeline it was recorded with, and `render` only
+replays that frozen plan — re-record (with a warm cache, a re-record costs no synthesis) to pick
+up the fix.
+
 ## 1.22.0
 
 **Share links can expire.** `plaintake publish --expiry 365d` (the same `s`/`m`/`h`/`d`
