@@ -324,7 +324,44 @@ case "$sum" in
 esac
 
 mkdir -p /opt/plaintake
-tar -xzf "$tarball" -C /opt/plaintake --strip-components=1
+# Not `tar -xzf ... --strip-components=1`, measured on this pinned base image: its tar (Ubuntu
+# 26.04, glibc 2.43) imports openat2@GLIBC_2.43 and reaches for it on every member below the
+# archive's top level, and Docker Desktop's amd64 emulation on Apple Silicon (Rosetta) answers
+# openat2 with ENOSYS — so under `--platform linux/amd64` on a Mac, every nested entry failed
+# with "Function not implemented" and the build died mid-extract. Native amd64 hardware
+# implements the syscall and never sees this; the emulated build is a real path anyway — it is
+# what `scripts/check-recipe.sh`'s amd64 leg runs, and what any Docker Desktop user gets if
+# they build that platform explicitly. python3 already ships on this base image (measured,
+# /usr/bin/python3) and its tarfile writes through the plain openat/mkdirat every emulator
+# implements; its output was verified identical to tar's on a release tarball — same paths,
+# modes, types and per-file digests.
+python3 - "$tarball" /opt/plaintake <<'PY'
+import sys, tarfile
+
+archive, dest = sys.argv[1], sys.argv[2]
+
+def parts_of(name):
+    return [p for p in name.split('/') if p not in ('', '.')]
+
+with tarfile.open(archive) as tf:
+    members = tf.getmembers()
+    # One root directory, asserted rather than assumed: the tarball's shape is this project's
+    # own build output, and a change to it should fail the build here rather than extract
+    # something subtly different from what the recipe below expects at /opt/plaintake.
+    roots = {parts_of(m.name)[0] for m in members if parts_of(m.name)}
+    if len(roots) != 1:
+        sys.exit(f'archive has {len(roots)} root directories: {sorted(roots)}')
+    keep = []
+    for m in members:
+        ps = parts_of(m.name)
+        if len(ps) <= 1:
+            continue  # the single root directory itself
+        m.name = '/'.join(ps[1:])
+        keep.append(m)
+    # filter='data' keeps what tar refuses too: no absolute paths, no .. traversal, no device
+    # nodes, no links escaping the destination.
+    tf.extractall(dest, members=keep, filter='data')
+PY
 ln -s /opt/plaintake/bin/plaintake /usr/local/bin/plaintake
 install -d -o pwuser -g pwuser /work
 rm -rf /tmp/tarballs "/tmp/$name"

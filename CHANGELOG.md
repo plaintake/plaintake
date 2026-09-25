@@ -17,6 +17,14 @@ tested against, so PlainTake still distributes no FFmpeg. The recipe carries the
 checksums and refuses a tarball that does not match. It is headless: the interactive handoff
 needs a display. Nothing changes for the macOS arm64 and Linux x64 builds.
 
+**Videos no longer end short of their declared length on quiet pages.** A screencast only
+sends frames when the page redraws, and Chromium's WebM recorder can end the file before
+the last caption finishes — around a third of fixture recordings on Linux arm64 ended two
+to three frames early, clipping the final caption. The renderer now pads the stream with
+clones of the last frame for the whole planned duration before trimming to it, so a video
+is always exactly as long as it was recorded to be. Videos whose capture already covered
+the full duration render byte-for-byte as before.
+
 ## 1.22.2
 
 **Split captions change on the spoken word on lines with a dash, too.** The voice does not
