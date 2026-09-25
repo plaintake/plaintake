@@ -260,6 +260,7 @@ today.
 | 4 | Capture — the recording itself broke. This is the code a bad deploy usually produces: a step whose selector never appears because the page changed shape, a navigation that 502s, anything Playwright throws that is not an assertion. |
 | 5 | Render — `check` never renders, so this does not apply to it. |
 | 6 | Verification — likewise not reachable from `check`. |
+| 7 | Drifted — the recording differs from `<name>.baseline.json` beside the scenario, or the scenario changed since the baseline was recorded. Only fires when a baseline file exists and `--no-baseline` was not passed. |
 
 Whichever code fires, a `.failed` bundle is published beside the requested output —
 `trace/trace.zip`, `events/events.ndjson` and `events/summary.json` all kept — so a failed

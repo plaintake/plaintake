@@ -4,6 +4,28 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.24.0
+
+**`check` and `run` catch an app that changed under a scenario.** Record once with
+`--update-baseline` and commit the `<name>.baseline.json` it writes beside the scenario. From
+then on a step, an assertion, or a clicked element's accessible name or role that differs from
+it fails with the new exit code 7, before the change reaches a caption. Moved or resized
+elements, timing and caption wording are printed but never fail, because two recordings of an
+unchanged app differ in those. `run` still renders the video when it finds drift, so you can
+watch what changed. The verdict is in the result's `baseline` field and in `events/drift.json`
+in the bundle. `--no-baseline` skips the comparison; without a baseline file nothing changes.
+
+**`plaintake diff --json` differences carry a `severity`, and `target` is split into
+`target-name`, `target-role` and `target-bounds`.** A role change is now reported, too. A
+script that matched `category === 'target'` needs to match the three new names.
+
+**A GitHub Action runs scenarios in CI.** [`plaintake/action`](https://github.com/plaintake/action)
+runs `plaintake check` from the release tarball by default, with no FFmpeg and no Docker, so it
+can gate every pull request; with a committed baseline, a drifted app fails the step with exit
+7. With `mode: render` it builds the Docker recipe on the runner and uploads the video as a
+workflow artifact. Linux runners (x64 and arm64) support both modes; Apple Silicon macOS
+runners support `check` only.
+
 ## 1.23.0
 
 **PlainTake runs on Linux arm64, and anywhere Docker runs.** Releases now carry a third

@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.23.0
+VERSION=1.24.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.23.0
+VERSION=1.24.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.23.0"
+$VERSION = "1.24.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -186,6 +186,24 @@ docker run --rm -v "${PWD}:/work" `
   Linux engine does not. The container also runs as uid 1001, so make a mounted output
   directory writable first (`mkdir -p out && chmod 777 out` — `mkdir -p` first because `chmod`
   on a directory that doesn't exist yet just fails).
+
+### GitHub Actions
+
+[`plaintake/action`](https://github.com/plaintake/action) runs a scenario in CI. By default it
+runs `plaintake check` from the release tarball, with no FFmpeg and no Docker, so it can gate
+every pull request:
+
+```yaml
+- uses: plaintake/action@v1
+  with:
+    version: 1.24.0
+    scenario: demos/create-api-key.demo.ts
+    base-url: http://localhost:3000
+```
+
+With `mode: render` it builds the Docker recipe above on the runner itself, cached per
+version, and uploads the rendered video as a workflow artifact. Linux runners (x64 and arm64)
+support both modes; Apple Silicon macOS runners support `check` only.
 
 ---
 
@@ -211,8 +229,8 @@ plaintake run      <scenario.ts> --output <dir> (--base-url <url> | --fixture)
                                   [--subtitles soft|hard] [--cursor on|off]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
                                   [--speech off|on|file] [--voice <id>]
-                                  [--config <path>]
-plaintake check    <scenario.ts> (--base-url <url> | --fixture) [--output <dir>]
+                                  [--config <path>] [--no-baseline | --update-baseline]
+plaintake check    <scenario.ts> (--base-url <url> | --fixture) [--output <dir>] [--no-baseline | --update-baseline]
 plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
@@ -246,6 +264,26 @@ plaintake --version
 | `install-voice` | Downloads the voice model `--speech on` needs. Once, and only if you want narration |
 | `activate` | Verifies a licence key with Gumroad once and saves it locally. Headless alternative to the TUI's *Enter a licence key* |
 | `licence` | Prints the current licence state — Free or Pro. Read-only |
+
+### Catching drift with a baseline
+
+`plaintake check demos/create-api-key.demo.ts --base-url … --update-baseline` records the
+scenario and writes `demos/create-api-key.baseline.json` beside it: the steps, the name, role
+and position of what each step clicked, every assertion verdict, and each step's duration.
+Commit it. From then on every `check` and `run` compares against it:
+
+- A step added, removed or reordered, an assertion that changed, or a target whose accessible
+  name or role changed fails with exit 7.
+- A target that moved or resized, a step that got slower or faster, and caption or actor
+  changes are printed but never fail.
+- An edited scenario exits 7 with `scenario changed since the baseline`; re-record with
+  `--update-baseline`. The check hashes only the `.demo.ts` file itself, so an edit to a
+  helper it imports shows up as drift, not as `scenario-changed`.
+
+The verdict is in the result's `baseline` field and in `events/drift.json` in the bundle.
+Accept an intended change by re-running with `--update-baseline` and committing the new file;
+its diff in the pull request is the review. `--no-baseline` skips the comparison. The GitHub
+Action needs no new inputs: drift fails the step, and the uploaded bundle includes `drift.json`.
 
 `run` needs exactly one target: `--base-url http://localhost:3000` for your own app, or
 `--fixture` for the bundled demo app the shipped examples record against.
@@ -312,6 +350,7 @@ stderr, and the two are never mixed.
 | 4 | Capture failure |
 | 5 | Render failure |
 | 6 | Verification or hash failure — including a publish the share service refused on digest or length |
+| 7 | The recording drifted from its committed baseline, or the scenario changed since the baseline was recorded |
 
 ### Writing a demo
 

@@ -42,6 +42,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 | `plaintake validate <file>` | Check a scenario. No browser. Always first. |
 | `plaintake init [<name>]` | Scaffold a starter scenario against the bundled fixture app (plus a starter `plaintake.config.json` when none exists) — then validate it. CLI only. |
 | `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target. |
+| `plaintake check <scenario> … --update-baseline` | Write `<name>.baseline.json` beside the scenario from a passing recording. Afterwards `check` and `run` exit 7 when a step, assertion, or a target's name or role drifts from it. `--no-baseline` skips the comparison. CLI only. |
 | `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
 | `plaintake compare <dirA> <dirB>` | Render-determinism gate: re-hash and re-decode two renders that should be identical — exit 6 on any drift, 0 only on a byte-for-byte match. Needs FFmpeg. CLI only. |
@@ -51,7 +52,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 
 - `--subtitles` defaults to `soft` — read mistake 1 before embedding anything.
 - Exit codes: `0` ok · `1` scenario/assertion · `2` args · `3` toolchain · `4` capture ·
-  `5` render · `6` hash.
+  `5` render · `6` hash · `7` drifted from the committed baseline.
 - Bare `plaintake` and `--help` print usage and exit `2` — on a pipe that is the design, not
   a failure.
 - The video lands at `<output>/output/<scenario-id>.mp4` (`demo.mp4` in bundles recorded
