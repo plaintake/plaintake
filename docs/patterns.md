@@ -116,6 +116,104 @@ it is filmed, login and all — which is right only when signing in *is* the dem
 works is switching personas inside a step: a step is one narrated action by one person, and
 a cookie jar emptying mid-step is a recording that lies about who is acting.
 
+## Showing a terminal: draw the output into the page
+
+PlainTake films a browser, never your desktop, so a CLI step — issuing a key, running a
+migration, grepping a server log — has no pixels of its own. The recipe: run the real command
+from the scenario (it is a Node module), then draw its output into the page as a
+terminal-styled panel pinned over the app. The recorder films the panel like any other
+element; nothing is faked, because what it shows is the command's actual stdout.
+
+```ts
+import { execFileSync } from 'node:child_process';
+import type { Page } from '@playwright/test';
+
+const cli = (...args: string[]) =>
+  execFileSync('./bin/mycli', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function showTerminal(page: Page, command: string, outputHtml: string) {
+  const html =
+    `<div class="demo-term-bar"><span></span><span></span><span></span><b>terminal</b></div>` +
+    `<pre><span class="demo-prompt">$</span> ${escapeHtml(command)}\n${outputHtml}</pre>`;
+  await page.evaluate((inner) => {
+    document.getElementById('demo-terminal')?.remove();
+    const el = document.createElement('div');
+    el.id = 'demo-terminal';
+    el.innerHTML = inner;
+    document.body.appendChild(el);
+  }, html);
+}
+
+const hideTerminal = (page: Page) =>
+  page.evaluate(() => document.getElementById('demo-terminal')?.remove());
+
+const TERMINAL_CSS = `
+#demo-terminal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 1500px; z-index: 100000; background: #0f172a; color: #e2e8f0; border-radius: 12px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.45); overflow: hidden; }
+#demo-terminal .demo-term-bar { background: #1e293b; padding: 12px 16px; display: flex;
+  gap: 8px; align-items: center; }
+#demo-terminal .demo-term-bar span { width: 13px; height: 13px; border-radius: 50%;
+  background: #f87171; }
+#demo-terminal .demo-term-bar span:nth-child(2) { background: #fbbf24; }
+#demo-terminal .demo-term-bar span:nth-child(3) { background: #34d399; }
+#demo-terminal .demo-term-bar b { margin-left: 12px; color: #94a3b8;
+  font: 600 15px system-ui, sans-serif; }
+#demo-terminal pre { margin: 0; padding: 24px 28px; font: 18px/1.55 ui-monospace, Menlo,
+  monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#demo-terminal .demo-prompt { color: #34d399; }
+#demo-terminal .demo-hl { color: #fbbf24; font-weight: 700; }
+`;
+```
+
+Inside `run`, register the mask first, inject the style after the page has loaded, then give
+each command its own step pointed at the panel:
+
+```ts
+await demo.mask({ id: 'cli-secret', selector: '#demo-terminal .demo-secret' });
+await page.goto(baseURL, { waitUntil: 'load' });
+await page.addStyleTag({ content: TERMINAL_CSS });
+
+const out = cli('apikey', 'create', '--service', 'billing');
+const key = /key:\s+(\S+)/.exec(out)?.[1] ?? '';
+await showTerminal(
+  page,
+  'mycli apikey create --service billing',
+  escapeHtml(out).replace(key, `<span class="demo-secret">${key}</span>`),
+);
+await demo.step({
+  id: 'cli-create', title: 'Issue a key',
+  subtitle: 'An operator issues a key with the CLI. It is printed exactly once.',
+  holdMs: 4500,
+  target: page.locator('#demo-terminal pre'), action: 'point',
+  run: async () => {},
+});
+await hideTerminal(page);
+```
+
+What makes it work, and what bites:
+
+- **Wrap secrets in a span, mask the span.** The mask is registered before the panel exists,
+  as the mask rule requires, and matches every panel the scenario draws later. Highlight the
+  line a viewer should read (`demo-hl`) the same way. Anything else the page echoes — an API
+  explorer's generated `curl` line repeating a header, say — hide with CSS in the same style
+  tag rather than chasing it with a mask.
+- **Stay on the page.** An overlay keeps the app's state: form inputs, an expanded panel, a
+  signed-in session. Navigating away to "show a terminal" and coming back loses it. A
+  navigation also drops the injected style and panel, so re-inject after one.
+- **Trim to one line per fact.** Log lines carry fields nobody reads (user agents, trace
+  ids) that wrap the panel into a wall. Cut them with a regex before escaping, and keep the
+  fields the narration mentions.
+- **Assert on the output, not the pixels.** The command's stdout is in hand; `demo.assert` it
+  (the key is absent from `list`, the log has three failures) so the recording fails when the
+  CLI misbehaves instead of filming it.
+- **Output that varies varies the video.** Fresh ids, keys and timestamps differ every run,
+  so a re-record will not match the last one frame for frame. Mask or normalize whatever
+  changes if you need stable renders.
+
 ## `allowedConsoleErrors` hygiene
 
 The metadata field takes exact strings, and the exactness is the whole mechanism — a

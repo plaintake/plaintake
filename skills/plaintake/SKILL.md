@@ -23,6 +23,9 @@ Demos of a web app — your own (`--base-url`) or the bundled fixture (`--fixtur
 re-rendering a bundle (captions soft ↔ hard); verifying a bundle's hashes; turning an
 existing Playwright trace into a draft scenario (`plaintake import`, CLI only).
 
+A CLI or log step inside a web demo is fine: run the real command from the scenario and draw
+its output into the page as a terminal panel (`docs/patterns.md` → Showing a terminal).
+
 Not PlainTake: OS screen recording, page or microphone audio (sound is synthesized narration
 only), non-deterministic content, any other viewport. macOS arm64, Linux x64 and Linux arm64 (or Docker).
 
@@ -156,8 +159,8 @@ precedence; a source checkout needs it installed in your project.
 
 Full DSL — metadata, `preflight`/`warmup`, the `intro` card, camera framing, handoff modes:
 <https://github.com/plaintake/plaintake/blob/main/docs/scenarios.md>. App-side recording
-patterns — idempotent seeding, Mailpit OTP polling, persona switching, console-error
-hygiene:
+patterns — idempotent seeding, Mailpit OTP polling, persona switching, an in-page terminal
+panel for CLI output, console-error hygiene:
 <https://github.com/plaintake/plaintake/blob/main/docs/patterns.md>. Metadata schema:
 <https://github.com/plaintake/plaintake/blob/main/schema/scenario.schema.json>. When in
 doubt, the MCP tool descriptions and `plaintake --help` are authoritative.
