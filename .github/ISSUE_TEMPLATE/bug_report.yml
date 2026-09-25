@@ -50,6 +50,8 @@ body:
       options:
         - macOS, Apple Silicon
         - Linux x64
+        - Linux arm64
+        - Docker (the plaintake.Dockerfile recipe)
         - Other (please say which, in the description)
     validations:
       required: true

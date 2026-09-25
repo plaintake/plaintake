@@ -60,6 +60,10 @@ carries the corresponding GPL obligations for FFmpeg itself. The image is a
 reproducibility harness, not a product artefact; if it is ever published, comply
 accordingly.
 
+The Docker recipe that ships with each release (`plaintake.Dockerfile`) is not that image. It is
+a text file that the user builds; their build downloads FFmpeg from Ubuntu's archive. PlainTake
+still distributes no FFmpeg binary, in a tarball or in an image.
+
 ## H.264 / AVC patents
 
 Output MP4 files use the H.264/AVC video codec via libx264.

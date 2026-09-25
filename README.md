@@ -86,14 +86,14 @@ FFmpeg and libass it found.
 
 ## Install
 
-Two builds: **macOS arm64** (Apple Silicon) and **Linux x64**. No Windows build, and no macOS
-Intel build.
+Three builds: **macOS arm64** (Apple Silicon), **Linux x64** and **Linux arm64**. No Windows
+build, and no macOS Intel build: on either, run PlainTake through Docker (below).
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.22.2
+VERSION=1.23.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
-curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64
+curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
 curl -LO $BASE/install.sh
 
@@ -139,6 +139,53 @@ touched.
   it. See [`NOTICE.md`](NOTICE.md).
 - **Chromium**, because it is ~350 MB with its own licence set, and Playwright's cache is
   shared with any other Playwright install you already have.
+
+### Docker (Windows, Intel Mac, CI)
+
+Every release carries `plaintake.Dockerfile`, a recipe you build yourself. Your build installs FFmpeg
+from Ubuntu's archive, with the same pinned version and the same libass, x264 and AAC checks
+the release is tested against, so PlainTake never redistributes it. The recipe is stamped with the release's
+tarball checksums and refuses to install anything that doesn't match.
+
+```bash
+VERSION=1.23.0
+curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
+docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
+
+# First run only: Docker creates a missing bind-mount source itself, owned by root, and a
+# container that only ever writes as pwuser could never touch a directory it made that way.
+mkdir -p ~/.config/plaintake
+
+# Record against your app on the host (Docker Desktop resolves host.docker.internal)
+docker run --rm -v "$PWD:/work" \
+  -v ~/.config/plaintake:/home/pwuser/.config/plaintake \
+  plaintake run demo.demo.ts --output out/demo --base-url http://host.docker.internal:3000
+```
+
+**PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
+
+```powershell
+$VERSION = "1.23.0"
+curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
+docker build -t plaintake -f plaintake.Dockerfile .
+
+New-Item -ItemType Directory -Force "$HOME\.config\plaintake" | Out-Null
+docker run --rm -v "${PWD}:/work" `
+  -v "$HOME\.config\plaintake:/home/pwuser/.config/plaintake" `
+  plaintake run demo.demo.ts --output out/demo --base-url http://host.docker.internal:3000
+```
+
+- **Pro licence:** mount the config directory as shown. `plaintake activate` run on the host
+  or in the container writes `license.json` there.
+- **Voices** are downloaded during the build, so `--network=none` works for anything that doesn't
+  need your app. Build with `--build-arg VOICE=0` to skip them.
+- **Headless only.** The interactive handoff (`demo.handoff`) needs a display, and the
+  container has none.
+- **On a native Linux host** (not Docker Desktop), `host.docker.internal` needs
+  `--add-host=host.docker.internal:host-gateway` — Docker Desktop resolves it on its own, the
+  Linux engine does not. The container also runs as uid 1001, so make a mounted output
+  directory writable first (`mkdir -p out && chmod 777 out` — `mkdir -p` first because `chmod`
+  on a directory that doesn't exist yet just fails).
 
 ---
 
@@ -417,7 +464,7 @@ Stated up front rather than discovered later:
   SSML — bar one in-line `[pause]` marker that breaks a long line where the voice would
   otherwise mistime it (stripped from the caption). A video that talks
   is longer than the same demo recorded silent, because each step waits for its line to finish.
-- **macOS arm64 and Linux x64 only.** No Windows build. No macOS Intel build.
+- **macOS arm64, Linux x64 and Linux arm64.** No Windows build and no macOS Intel build; both can run PlainTake through the Docker recipe.
 - **Chromium only**, one tab, one page.
 - **Capture is always 1920×1080 at 30 fps.** No other capture size, no other frame rate.
   `--aspect` changes the shape of the finished video and nothing else: `9:16` and `1:1`

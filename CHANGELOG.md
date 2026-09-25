@@ -4,6 +4,19 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.23.0
+
+**PlainTake runs on Linux arm64, and anywhere Docker runs.** Releases now carry a third
+tarball, `plaintake-1.23.0-linux-arm64.tar.gz`, verified on arm64 Linux servers and VMs — built
+and recorded in an arm64 Ubuntu container, the same way the existing builds are. They also
+carry `plaintake.Dockerfile`, a recipe you build yourself, and it is the
+way to run PlainTake on Windows and on Intel Macs today: `docker build -t plaintake -f
+plaintake.Dockerfile .`, then `docker run` it with your project mounted. Your build installs
+FFmpeg with the same pinned version and the same libass, x264 and AAC checks the release is
+tested against, so PlainTake still distributes no FFmpeg. The recipe carries the release's
+checksums and refuses a tarball that does not match. It is headless: the interactive handoff
+needs a display. Nothing changes for the macOS arm64 and Linux x64 builds.
+
 ## 1.22.2
 
 **Split captions change on the spoken word on lines with a dash, too.** The voice does not

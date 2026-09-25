@@ -24,7 +24,7 @@ re-rendering a bundle (captions soft ↔ hard); verifying a bundle's hashes; tur
 existing Playwright trace into a draft scenario (`plaintake import`, CLI only).
 
 Not PlainTake: OS screen recording, page or microphone audio (sound is synthesized narration
-only), non-deterministic content, any other viewport. macOS arm64 and Linux x64 only.
+only), non-deterministic content, any other viewport. macOS arm64, Linux x64 and Linux arm64 (or Docker).
 
 ## MCP or CLI
 
