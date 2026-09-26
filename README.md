@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.24.0
+VERSION=1.24.1
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.24.0
+VERSION=1.24.1
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.24.0"
+$VERSION = "1.24.1"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.24.0
+    version: 1.24.1
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```

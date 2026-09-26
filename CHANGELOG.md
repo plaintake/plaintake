@@ -4,6 +4,16 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.24.1
+
+**A video with an intro and chapters but no outro no longer fails to render.** The last
+chapter could end 1 ms after the video, and the render refused the file with `chapter N spans
+…–96300ms, expected …–96301ms`. It happened on about one recording in three, depending on
+the intro's and the capture's lengths. An outro hid it, because the file then ran past the
+chapter's end. The last chapter now ends exactly where the video does. Bundles recorded before
+this fix still hold the old mark, so re-record any that failed; `render` executes the frozen
+plan as it is.
+
 ## 1.24.0
 
 **`check` and `run` catch an app that changed under a scenario.** Record once with
