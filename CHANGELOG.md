@@ -4,6 +4,20 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.25.0
+
+**`plaintake unpublish` takes a share down.** Name it by the bundle you published, the share
+id, or the share URL. The link answers 410 Gone at once. The service keeps the video until
+its retention deletes it for good, and the result says when; until then, `plaintake publish`
+on the same bundle restores the same link without uploading anything again. It uses the same
+endpoint and key as `publish`. Copies viewers already downloaded cannot be recalled, and the
+command says so. CLI-only, like `publish`: no MCP tool can delete anything.
+
+**Republishing an unpublished or expired share works again.** It used to fail with exit 1
+("answered the dedup probe with HTTP 410"). It now restores the share and reports
+`restored`. A share the service's operator took down fails with exit 2 and says only the
+operator can restore it.
+
 ## 1.24.1
 
 **A video with an intro and chapters but no outro no longer fails to render.** The last

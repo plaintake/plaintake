@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.24.1
+VERSION=1.25.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.24.1
+VERSION=1.25.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.24.1"
+$VERSION = "1.25.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.24.1
+    version: 1.25.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -237,6 +237,7 @@ plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
 plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>] [--remember]
                                    [--expiry <duration>|none]
+plaintake unpublish <bundleDir | shareId | shareURL> [--endpoint <url>] [--key <key>]
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
                                    [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
@@ -258,6 +259,7 @@ plaintake --version
 | `diff` | Semantic diff between two bundles — steps, assertions, target position/name, timing and captions. No frame comparison |
 | `inspect` | Reports the video, captions, chapters, output sizes and toolchain. Read-only |
 | `publish` | Uploads a recording's video, captions and chapter marks to a share service and prints the viewer link — a page with a clickable transcript and chapter list. The share id is derived from the video's sha256, so republishing is a no-op. No MCP tool |
+| `unpublish` | Takes a published share down, by recording, share id or share URL. The link stops working at once, and publishing the same recording again restores it until the service deletes it for good. Cannot recall copies viewers already downloaded. No MCP tool |
 | `prune` | Deletes recordings under the working directory, selected by age, size cap, count or scenario. Dry-run unless `--yes`. No MCP tool |
 | `import` | Drafts a scenario from any Playwright `trace.zip` — yours, or a recording's own `trace/`. Placeholder subtitles, no timings, secret-looking values redacted. Review before committing. No MCP tool |
 | `doctor` | Checks FFmpeg, libass, x264 and the filters that are needed, and reports whether the voice model is installed |
@@ -337,6 +339,13 @@ file: config files travel, that credential location does not. Share links never 
 default; `--expiry 365d` (or `"expiry": "365d"` in the same `publish.json`) expires the
 link that long after the publish, republishing refreshes the clock, and `--expiry none`
 opts one run out of the stored policy. CLI-only, like `prune` and `import`.
+
+Changed your mind? `plaintake unpublish <bundleDir>` (or the share id, or the share URL)
+takes the link down at once, using the same endpoint and key as `publish`. The service
+keeps the video until it deletes it for good, and the result says when; until then,
+publishing the same recording again restores the same link, with nothing re-uploaded.
+Anyone who already downloaded the video keeps their copy — unpublishing stops new
+viewers, it cannot recall old ones. CLI-only, like `publish`.
 
 Add `--json` to any command for a machine-readable result on stdout. Diagnostics always go to
 stderr, and the two are never mixed.
@@ -534,9 +543,9 @@ Stated up front rather than discovered later:
   the CLI.
 - **Nothing leaves the machine unless you ask.** Recording and rendering never touch the
   network. The only calls PlainTake ever makes are the ones you name: `activate` (one Gumroad
-  verification), `install-browser`/`install-voice` (downloads you asked for), and `publish`
-  (an upload you ran). There is no telemetry, and no MCP tool can publish on an agent's
-  behalf.
+  verification), `install-browser`/`install-voice` (downloads you asked for), and `publish`/
+  `unpublish` (an upload, or a takedown, you ran). There is no telemetry, and no MCP tool can
+  publish or unpublish on an agent's behalf.
 - **`import` drafts; it does not finish.** The draft's subtitles are placeholders (captions are
   written by you), timings are defaults, and any value typed into the recorded page is in it —
   redacted only where the field looked secret-bearing, because the trace recorded everything.
