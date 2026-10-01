@@ -4,6 +4,15 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.25.1
+
+**The synthetic cursor waits for the narration instead of crawling to it.** When narration
+steps without a target sat between two clicks, the pointer slid slowly across the whole gap —
+ten seconds for one move in a real recording. It now rests on its last target and moves to the
+next one in 200–500 ms, depending on distance, landing at the same moment as before. The
+camera's zoom follows the same timing. Bundles recorded before this fix keep their frozen
+cursor path; re-record to pick it up, since `render` executes the frozen plan as it is.
+
 ## 1.25.0
 
 **`plaintake unpublish` takes a share down.** Name it by the bundle you published, the share
