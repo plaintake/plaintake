@@ -43,7 +43,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 | `plaintake init [<name>]` | Scaffold a starter scenario against the bundled fixture app (plus a starter `plaintake.config.json` when none exists) — then validate it. CLI only. |
 | `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target. |
 | `plaintake check <scenario> … --update-baseline` | Write `<name>.baseline.json` beside the scenario from a passing recording. Afterwards `check` and `run` exit 7 when a step, assertion, or a target's name or role drifts from it. `--no-baseline` skips the comparison. CLI only. |
-| `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1]` | Re-render the frozen plan. No browser. |
+| `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1] [--reframe letterbox\|follow]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
 | `plaintake compare <dirA> <dirB>` | Render-determinism gate: re-hash and re-decode two renders that should be identical — exit 6 on any drift, 0 only on a byte-for-byte match. Needs FFmpeg. CLI only. |
 | `plaintake inspect <dir>` | Summarize a bundle — cues, chapters, narration. |
@@ -155,6 +155,15 @@ precedence; a source checkout needs it installed in your project.
    caveats: the cursor arrow itself still marks the pre-scroll click position, and on a
    `click`-action step `highlight`'s spotlight is a brief pulse that can still end before a
    slow reveal finishes (non-click actions are unaffected).
+10. **A vertical cut shows the app at about half size.** `--aspect 9:16` letterboxes the whole
+   16:9 frame to 1080 wide, so desktop UI text ends up too small for a phone. For a vertical
+   video set `uiScale: 2` in the scenario metadata (the page lays out at 960×540 and is drawn
+   at 2×, still a 1920×1080 frame) and record with `--camera zoom --aspect 9:16 --subtitles
+   hard`. The app sees the narrower viewport, so selectors or pixel coordinates measured at 1×
+   may need re-measuring. For a bigger picture still, add `--reframe follow`: the 9:16 box
+   becomes 4:3 and is filled with a window that follows the camera (1.33× the letterbox's size),
+   cutting off the sides of the frame. It re-cuts an existing camera-zoom bundle with
+   `render --aspect 9:16 --reframe follow`, no re-record.
 
 ## Deeper reference
 

@@ -4,6 +4,32 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.26.0
+
+**`uiScale` makes the page bigger without changing the video.** Add `uiScale: 2` (or `1.5`) to a
+scenario and the page is laid out at 960×540 and drawn at 2×, like browser zoom: the video is
+still 1920×1080, and the UI in it is twice the size and sharp. It is meant for vertical videos —
+`--aspect 9:16` shrinks the whole frame to 1080 wide, which leaves desktop text too small to read
+on a phone; with `uiScale: 2` and `--camera zoom`, the UI ends up larger than on a desktop
+screen. Your app sees a narrower window, so its responsive layout may change, and coordinates
+you pass to `page.mouse` are in the scaled page's pixels. Scenarios without `uiScale` record
+exactly as before.
+
+**The recorder checks each frame's real image size.** The size the browser reports is the page
+layout, which is no longer the frame once `uiScale` is set, so the recorder now also reads the size
+from each frame image and checks the raw recording is 1920×1080. Anything else fails the run with
+exit 4 and says what it got.
+
+**`--reframe follow` fills a vertical video with the part of the screen that matters.**
+`--aspect 9:16` shrinks the whole 16:9 frame into a strip, which is why vertical cuts look like
+a desktop video on a phone. Add `--reframe follow` and the box becomes 4:3 (1080×810) and is
+filled with a window that follows the camera: each zoom keeps its width and gains height, so
+dialogs and forms the camera framed stay whole and the UI is drawn 1.33× larger. It cuts off the
+sides of the frame, so record with `--camera zoom`; without a camera it is a fixed centre crop.
+It is render-time like `--aspect`, so `plaintake render <bundle> --aspect 9:16 --reframe follow`
+re-cuts a bundle you already have, and `--aspect 9:16` alone cuts it back. 9:16 only; every
+other render is unchanged.
+
 ## 1.25.1
 
 **The synthetic cursor waits for the narration instead of crawling to it.** When narration

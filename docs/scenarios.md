@@ -54,7 +54,8 @@ export default defineDemo({
 | `id` | lowercase kebab-case string | yes | Authored and stable. Never generate it — it names the scenario across every run. |
 | `title` | non-empty string | yes | Shown in `validate`/`inspect` output. |
 | `language` | string, min length 2 | no, defaults to `'en'` | The narration/caption language tag. |
-| `viewport` | `{width:1920,height:1080,deviceScaleFactor:1}` | yes | The only supported viewport; every field is a literal. |
+| `viewport` | `{width:1920,height:1080,deviceScaleFactor:1}` | yes | The captured frame; every field is a literal. |
+| `uiScale` | `1`, `1.5` or `2` | no, defaults to `1` | How large the page is drawn inside that frame, like browser zoom. At `2` the page lays out at 960×540 CSS pixels and is painted at 2×, so the video is still 1920×1080 and the UI in it is twice the size and sharp — what a vertical `--aspect 9:16` cut needs to stay readable. The app sees the narrower viewport, so its responsive layout may change. Coordinates you pass to `page.mouse` or a scroll delta are CSS pixels. |
 | `locale` | `'en-US'` | yes | The only supported locale. |
 | `timezoneId` | `'UTC'` | yes | The only supported timezone. |
 | `colorScheme` | `'light'` | yes | The only supported scheme. |

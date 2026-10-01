@@ -293,7 +293,7 @@ async preflight({ page, baseURL }) {
 
 For a session prepared some other way, `demo.actor(id, { contextOptions })` merges into
 Playwright's `browser.newContext()` — every option except `viewport`/`deviceScaleFactor`
-(every context captures at the one fixed size) passes through, `storageState` included, so a
+(every context captures at the one fixed size, laid out at the scenario's `uiScale`) passes through, `storageState` included, so a
 pre-authenticated state file works exactly as it would in a Playwright test.
 
 **A headless run's trace is not a safe place for real credentials.** Its DOM snapshotter

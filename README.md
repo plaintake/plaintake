@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.25.1
+VERSION=1.26.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.25.1
+VERSION=1.26.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.25.1"
+$VERSION = "1.26.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.25.1
+    version: 1.26.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -228,10 +228,12 @@ plaintake validate <scenario.ts>
 plaintake run      <scenario.ts> --output <dir> (--base-url <url> | --fixture)
                                   [--subtitles soft|hard] [--cursor on|off]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
+                                  [--reframe letterbox|follow]
                                   [--speech off|on|file] [--voice <id>]
                                   [--config <path>] [--no-baseline | --update-baseline]
 plaintake check    <scenario.ts> (--base-url <url> | --fixture) [--output <dir>] [--no-baseline | --update-baseline]
 plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
+                                 [--reframe letterbox|follow]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
@@ -306,13 +308,24 @@ picture is scaled into a box inside the taller frame and the space left over bec
 band — nothing is cropped away — and the captions move off the video and into that band, where
 they get more room than they have ever had over the picture. What gets recorded does not change:
 capture is always 1920×1080 whatever you pass, and `16:9` is the default and the video this tool
-has always rendered. Since the shape is chosen at render time, a recording you already have can
+has always rendered. Letterboxing shows the app at a little over half size, so for a vertical
+video set `uiScale: 2` in the scenario too: the page is drawn twice as large inside the same
+frame, and with `--camera zoom` the UI ends up larger than on a desktop screen. Since the shape is chosen at render time, a recording you already have can
 often be re-cut with `plaintake render <bundleDir> --aspect 9:16` without recording it again — the
 same thing that makes switching subtitle modes a re-render rather than a re-record. "Often"
 because a caption line is wrapped to fit its frame at record time, and the letterboxed frame is
 narrower: a 16:9 recording whose captions run long enough is refused rather than re-cut into
 words that would run off the edge, naming the offending line. `run --aspect` from the start always
 avoids this, because the captions are wrapped for the right frame from the first take.
+
+`--reframe follow` (9:16 only) trades the whole picture for a bigger one. Instead of shrinking
+the full 16:9 frame into the box, it crops a 4:3 window — taller, so the box grows to 1080×810 —
+that follows the camera: each shot keeps its width and gains height, and wide shots become the
+1440×1080 centre. The UI is drawn 1.33× larger than the letterbox, and the sides of the frame
+are cut off, which is why it follows the camera rather than guessing — record with
+`--camera zoom`. Without a camera it is a fixed centre crop. Like `--aspect` it is render-time:
+`plaintake render <bundleDir> --aspect 9:16 --reframe follow` re-cuts a bundle you already have,
+and `--aspect 9:16` alone cuts it back to the letterbox.
 
 Recording for more than one product? Commit a `plaintake.config.json` at each product's repo
 root with its own branding — outro card and theme colours, both Pro (see
@@ -517,7 +530,13 @@ Stated up front rather than discovered later:
 - **Capture is always 1920×1080 at 30 fps.** No other capture size, no other frame rate.
   `--aspect` changes the shape of the finished video and nothing else: `9:16` and `1:1`
   letterbox that same capture instead of cropping it, and leaving the flag off gives you the
-  16:9 video this tool has always produced.
+  16:9 video this tool has always produced. The one crop is opt-in: `--reframe follow` fills a
+  9:16 box with a 4:3 window that follows the camera, cutting off the sides of the frame.
+- **`uiScale` makes the page bigger, not the video.** `uiScale: 2` in a scenario lays the page
+  out at 960×540 and paints it at 2×, like browser zoom — the video is still 1920×1080 and the
+  UI is twice the size and sharp, which is what keeps a `9:16` cut readable on a phone. Your
+  app sees a narrower window, so its layout may change; only `1`, `1.5` and `2` are offered,
+  and it is not a mobile or portrait viewport.
 - **The cursor is optional and synthetic.** `--cursor on` draws one pointer shape with click
   ripples, generated from the scenario's targets — it is not your real mouse, there are no
   styles to configure, and `off` (the default) films none.
