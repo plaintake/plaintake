@@ -4,6 +4,19 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.26.1
+
+**The camera moves smoothly.** Under `--camera zoom` the window could jump 60–76 px in a
+single frame and then crawl after the pointer, because it was pushed over a pointer that left the
+frame exactly as far as the pointer had gone, frame by frame. The push is now worked out over
+the whole clip and eased: the camera starts moving before the pointer reaches the edge, keeps it
+64 px inside, and settles afterwards. Under `--reframe follow` a zoom-out no longer stops partway
+while the pan carries on, and every zoom runs at an even pace. Re-measured on six recorded 9:16
+videos: the largest frame-to-frame change in camera speed fell from 44–58 px to 6–8 px. The camera
+file is written when a plan is cut, so re-cut a bundle you already have to smooth it — `plaintake
+render <bundle> --aspect 9:16 --reframe follow` (the aspect it was recorded with) rewrites it; a
+plain `plaintake render <bundle>` executes the file it already has. Nothing needs re-recording.
+
 ## 1.26.0
 
 **`uiScale` makes the page bigger without changing the video.** Add `uiScale: 2` (or `1.5`) to a
