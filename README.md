@@ -46,7 +46,7 @@ scenario — the exact source, the command, and every flag it used are published
 [`docs/site-demo/`](docs/site-demo/).
 
 More videos made with PlainTake are on
-[YouTube](https://www.youtube.com/@plainlabdev).
+[YouTube](https://www.youtube.com/@plainlabdev) and [TikTok](https://www.tiktok.com/@plainlab).
 
 ---
 
