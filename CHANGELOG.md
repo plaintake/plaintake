@@ -4,6 +4,18 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.26.2
+
+**The camera frames the whole target.** Under `--camera zoom` the zoom was picked so the target
+plus its margin filled the window on one axis, which could cut the other axis: a tall dialog
+lost its bottom (a 800×900 popup was framed 1280×720 and lost 180 px with no warning), and a
+long, short line was cut at both ends past the 1.6× cap (`camera.cropped`). The zoom now stops
+where the whole target fits, and the margin shrinks instead; the run log says so with a
+`camera.clamped` note. A target larger than the frame still gets the full frame. Nothing else
+about framing changes: a target that already fit is framed exactly as before. Camera shots are
+fixed when a bundle is recorded, so re-record to pick this up — `plaintake render` re-renders
+the shots a bundle already has.
+
 ## 1.26.1
 
 **The camera moves smoothly.** Under `--camera zoom` the window could jump 60–76 px in a
