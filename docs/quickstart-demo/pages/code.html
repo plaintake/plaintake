@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PlainTake quickstart — The scenario</title>
+  <link rel="stylesheet" href="quickstart.css">
+  <style>
+    .listing { height: 820px; overflow: hidden; font-family: var(--font-mono); font-size: 25px; line-height: 1.5; padding: 18px 0; }
+    .listing .ln { display: grid; grid-template-columns: 72px 1fr; white-space: pre; padding: 0 40px 0 0; }
+    .listing .ln .no { color: var(--color-muted); text-align: right; padding-right: 28px; user-select: none; }
+    .listing .ln.hl { background: var(--color-accent-soft); }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <span class="wordmark">Plain<span class="take">Take</span></span>
+    <span class="crumb">quickstart · the scenario being recorded</span>
+    <span class="site">plaintake.github.io</span>
+  </header>
+
+  <main class="stage">
+    <section class="card">
+      <div class="titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="title">release-approval.demo.ts</span>
+      </div>
+      <div class="listing" id="listing"></div>
+    </section>
+  </main>
+
+  <script>
+    // Renders the real scenario file the terminal is running — served from the run's own
+    // working directory by serve.mjs — so the listing on screen is the file being recorded,
+    // not a copy of it. Three blocks get an id the scenario points at: `#blk-define`, the
+    // step that types the version (`#blk-step`) and `#blk-assert`. Each block runs from its
+    // opening line to the first later line closing at the same indent.
+    const KW = /\b(import|from|export|default|await|async|const|return)\b/g;
+
+    function highlight(text) {
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Split on string literals first so keywords inside strings stay uncoloured.
+      return text.split(/('(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/).map((part, i) =>
+        i % 2 === 1
+          ? `<span class="tok-str">${esc(part)}</span>`
+          : esc(part).replace(KW, '<span class="tok-kw">$1</span>'),
+      ).join('');
+    }
+
+    function blockFrom(lines, start) {
+      const indent = lines[start].match(/^\s*/)[0];
+      for (let i = start + 1; i < lines.length; i++) {
+        if (lines[i].startsWith(`${indent}})`)) return [start, i];
+      }
+      return [start, start];
+    }
+
+    (async () => {
+      const source = await (await fetch('workspace/release-approval.demo.ts')).text();
+      const lines = source.replace(/\n$/, '').split('\n');
+      const listing = document.getElementById('listing');
+      const rows = lines.map((line, i) => {
+        const row = document.createElement('div');
+        row.className = 'ln';
+        row.id = `ln-${i + 1}`;
+        row.innerHTML = `<span class="no">${i + 1}</span><span class="src">${highlight(line) || ' '}</span>`;
+        listing.append(row);
+        return row;
+      });
+
+      const marks = [
+        ['blk-define', lines.findIndex((l) => l.includes('defineDemo({'))],
+        ['blk-step', lines.findIndex((l) => l.includes("id: 'enter-version'")) - 1],
+        ['blk-assert', lines.findIndex((l) => l.includes('demo.assert({'))],
+      ];
+      for (const [id, start] of marks) {
+        if (start < 0) throw new Error(`no ${id} in the scenario`);
+        const [from, to] = id === 'blk-define' ? [start, start] : blockFrom(lines, start);
+        const block = document.createElement('div');
+        block.id = id;
+        rows[from].before(block);
+        for (let i = from; i <= to; i++) {
+          rows[i].classList.add('hl');
+          block.append(rows[i]);
+        }
+      }
+      await document.fonts.ready;
+      window.__codeReady = true;
+    })();
+  </script>
+</body>
+</html>

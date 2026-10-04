@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.26.2
+VERSION=1.27.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.26.2
+VERSION=1.27.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.26.2"
+$VERSION = "1.27.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.26.2
+    version: 1.27.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -218,6 +218,9 @@ settings, licence, toolchain check.
 offers: play the video, open the folder, show the details, verify the hashes, re-render, or
 delete. Deleting asks first and names the size, and refuses anything that is not a recording.
 
+It runs terminal scenarios too: it skips the target question for one, and asks only for the
+browser's URL (or the fixture) when the scenario declares `terminal.browser`.
+
 It only starts on a real terminal. Piped, or given a command, you get usage and a non-zero
 exit — so an agent running `plaintake` never sits waiting on a prompt.
 
@@ -225,13 +228,13 @@ exit — so an agent running `plaintake` never sits waiting on a prompt.
 
 ```
 plaintake validate <scenario.ts>
-plaintake run      <scenario.ts> --output <dir> (--base-url <url> | --fixture)
+plaintake run      <scenario.ts> --output <dir> [--base-url <url> | --fixture]
                                   [--subtitles soft|hard] [--cursor on|off]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
                                   [--reframe letterbox|follow]
                                   [--speech off|on|file] [--voice <id>]
                                   [--config <path>] [--no-baseline | --update-baseline]
-plaintake check    <scenario.ts> (--base-url <url> | --fixture) [--output <dir>] [--no-baseline | --update-baseline]
+plaintake check    <scenario.ts> [--base-url <url> | --fixture] [--output <dir>] [--no-baseline | --update-baseline]
 plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
                                  [--reframe letterbox|follow]
 plaintake verify   <bundleDir>
@@ -290,7 +293,10 @@ its diff in the pull request is the review. `--no-baseline` skips the comparison
 Action needs no new inputs: drift fails the step, and the uploaded bundle includes `drift.json`.
 
 `run` needs exactly one target: `--base-url http://localhost:3000` for your own app, or
-`--fixture` for the bundled demo app the shipped examples record against.
+`--fixture` for the bundled demo app the shipped examples record against. The one exception
+is a scenario that declares `terminal`: it starts its own page, so it takes **no** target
+(exit 2 if you pass one) — unless it also declares `terminal.browser: true`, which records a
+web app alongside the terminal and needs exactly one.
 
 `--cursor on` draws a pointer that glides between the scenario's targets and ripples on
 clicks; `off`, the default, records none. It is drawn when the video is rendered, from the
@@ -427,6 +433,19 @@ window instead, and carry on once you are done — declared with `handoff: 'pref
 `demo.handoff()` in the matching phase. You act in the browser, never in PlainTake: it
 never asks for a password, and a recording made this way stores no Playwright trace at all.
 Full details, including which mode to use and why: **[`docs/scenarios.md`](docs/scenarios.md)**.
+
+### Recording a terminal
+
+A scenario can declare `terminal` to record a live command-line program instead of a web app:
+PlainTake runs it in a real PTY, draws it with xterm.js in a local page and films that page
+like any other, so captions, narration, the cursor, the camera and chapters all work. Record
+it with no target. Secrets listed in `terminal.secrets` are masked by value and are never
+typed. Declare `terminal.browser: true` to take turns between the terminal and a web app in
+one video — a hard cut by default, a card when you ask for one (`demo.turn(actor, { card })`,
+or `{ card: false }` to force a cut) — and record it with exactly one of `--base-url` or
+`--fixture`. The Playwright trace then covers only the terminal, and `terminal.secrets` never
+masks web pixels. Full reference: **[`docs/scenarios.md`](docs/scenarios.md)** and
+**[`docs/patterns.md`](docs/patterns.md)**.
 
 ### Multiple actors
 

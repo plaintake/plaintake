@@ -1,24 +1,31 @@
 import { defineDemo } from '@plaintake/scenario';
 
 /*
- * The quickstart tutorial video — PlainTake recording a guide to PlainTake.
+ * The quickstart tutorial video — PlainTake recording a guide to PlainTake, in a real terminal
+ * and a real browser.
  *
- * The terminal, the code viewer and the player are the static pages in ./pages, served by
- * ./serve.mjs (see README.md). The video the player embeds is the real output of the
- * example run inside `make quickstart-demo`, so the last stretch of this tutorial is the
- * exact artifact the taught command produces.
+ * The terminal is a live shell (`terminal.browser: true`): every command on screen really runs,
+ * in a fresh working directory `make quickstart-demo` prepares with what a user has after the
+ * install guide's download step — the release tarball, SHA256SUMS and install.sh, built from this
+ * checkout — plus the example scenario. The download itself is the one step not filmed, because
+ * a recording never opens a socket. The video checks the checksum, installs into the terminal's
+ * own throwaway HOME, and from then on uses that installed binary. While its `plaintake run`
+ * records the example in its own headless Chromium, the video cuts to the browser actor, which walks through that same scenario file —
+ * served from the terminal's working directory by ./serve.mjs, so the listing is the file being
+ * recorded. When the run has finished, the browser plays the MP4 it just wrote.
+ *
+ * Nothing in the browser is pre-rendered output: the only static pages are the code viewer and
+ * the player in ./pages. Pages are preloaded off-screen with the raw `web.page`, while the
+ * terminal still holds the turn, so every cut lands on a rendered page — the same reason the
+ * old pages-only version navigated between steps, never inside a step's `run()`.
  *
  * The run records without camera zoom on purpose: at the zoom cap the framing window is
- * narrower than the code lines, and a tutorial that crops its own content is worse than
- * one that never zooms. Every step still declares its target, so the drawn pointer marks
- * the line being talked about.
- *
- * Every page change happens between steps, never inside a step's `run()`: the recorder
- * measures the step's target *before* `run()` starts, and a target that is not on the
- * current page yet costs a two-second probe timeout — and with it the pointer's glide to
- * that line, because an unmeasured rect is nowhere for the cursor to go. Navigating
- * between steps is what keeps each new page a clean cut.
+ * narrower than the code lines, and a tutorial that crops its own content is worse than one
+ * that never zooms. Every pointed-at step still declares its target, so the drawn pointer marks
+ * what is being talked about.
  */
+
+const SCENARIO = 'release-approval.demo.ts';
 
 export default defineDemo({
   schema: 'agent-demo.scenario/v1',
@@ -30,198 +37,183 @@ export default defineDemo({
   timezoneId: 'UTC',
   colorScheme: 'light',
   reducedMotion: 'reduce',
+  // The captions keep the written forms; the voice reads these as separate words and letters.
+  pronunciations: { defineDemo: 'define demo', MP4: 'M P 4' },
+
+  terminal: {
+    cols: 100,
+    rows: 28,
+    // Created fresh by `make quickstart-demo`; see README.md.
+    cwd: '../../../artifacts/quickstart-demo-workspace',
+    // The installed binary's Chromium lives where the parent's does, which the terminal's clean
+    // HOME would otherwise hide — the film's stand-in for a one-time `plaintake install-browser`.
+    env: ['PLAYWRIGHT_BROWSERS_PATH'],
+    browser: true,
+  },
 
   intro: {
-    lines: ['PlainTake quickstart', 'install → run → demo.mp4'],
-    narration: 'Script in, video out — the whole loop in one minute.',
+    lines: ['PlainTake quickstart', 'install → script → video'],
+    narration: 'Install PlainTake and record your first demo, in a real terminal and a real browser.',
     durationMs: 2_500,
   },
 
-  async preflight({ page, baseURL }) {
-    for (const path of [
-      '/install.html',
-      '/scenario.html',
-      '/validate.html',
-      '/run.html',
-      '/watch.html',
-      '/bundle.html',
-    ]) {
-      await page.goto(`${baseURL}${path}`, { waitUntil: 'load' });
-      await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    }
-    // The player page fetches the example video as a blob and seeks it to the stretch the
-    // tutorial shows; wait until that is done so the first filmed frame is the paused one.
-    await page.goto(`${baseURL}/watch.html`, { waitUntil: 'load' });
-    // The flag is set by watch.html's untyped page script once the embedded video has
-    // seeked; the cast is the only DOM-lib-visible trace of that handshake.
-    await page.waitForFunction(
-      () => (window as { __demoReady?: boolean }).__demoReady === true,
-      undefined,
-      { timeout: 30_000 },
-    );
-  },
+  async run({ demo, term, baseURL }) {
+    if (term === undefined) throw new Error('a terminal scenario is handed `term`');
+    const web = await demo.actor('web', { label: 'Browser' });
 
-  async warmup({ page, baseURL }) {
-    await page.goto(`${baseURL}/install.html`, { waitUntil: 'load' });
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
-  },
+    // The code viewer needs nothing the terminal makes, so it loads before the first frame.
+    await web.page.goto(`${baseURL}/code.html`, { waitUntil: 'load' });
+    await web.page.waitForFunction(() => (window as { __codeReady?: boolean }).__codeReady === true);
 
-  async run({ page, demo, baseURL }) {
     await demo.chapter('Install');
+    await term.waitForText('$', { timeoutMs: 10_000 });
 
-    await demo.step({
-      id: 'download-install',
-      title: 'Download and install',
-      subtitle: 'Download the tarball and run the installer.',
-      target: page.getByRole('button', { name: 'curl -LO' }),
-      action: 'point',
-      holdMs: 2_600,
-      run: () => Promise.resolve(),
+    await term.run('ls', {
+      id: 'download',
+      title: 'The release download',
+      subtitle: 'Start from the release download: the tarball, its checksums and the installer.',
+      holdMs: 2_000,
     });
+    await term.waitForText('install.sh', { timeoutMs: 5_000 });
 
-    await demo.step({
-      id: 'doctor',
-      title: 'Check the toolchain',
-      subtitle: 'plaintake doctor checks FFmpeg and Chromium.',
-      target: page.getByRole('button', { name: 'plaintake doctor' }),
-      action: 'click',
+    await term.run('shasum -a 256 -c SHA256SUMS', {
+      id: 'checksum',
+      title: 'Check the download',
+      subtitle: 'Check that the download is exactly what was published.',
+      holdMs: 1_800,
+    });
+    await term.waitForText(': OK', { timeoutMs: 30_000 });
+
+    await term.run('sh install.sh plaintake-*.tar.gz', {
+      id: 'install',
+      title: 'Install',
+      subtitle: 'The installer unpacks one self-contained tree and links plaintake.',
       holdMs: 2_400,
-      run: () => page.getByRole('button', { name: 'plaintake doctor' }).click(),
     });
+    await term.waitForText('Next:', { timeoutMs: 60_000 });
 
-    await page.goto(`${baseURL}/scenario.html`, { waitUntil: 'load' });
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    await demo.chapter('Write the scenario');
-
-    await demo.step({
-      id: 'scenario-file',
-      title: 'A demo is a TypeScript file',
-      subtitle: 'Define steps, captions and chapters with defineDemo.',
-      target: page.locator('#ln-define'),
-      action: 'point',
-      holdMs: 2_400,
-      run: () => Promise.resolve(),
+    await term.run('export PATH="$HOME/.local/bin:$PATH"; plaintake --version', {
+      id: 'version',
+      title: 'Ready',
+      subtitle: 'Put it on your PATH, and plaintake is ready.',
+      holdMs: 1_800,
     });
+    await term.waitForText(/^plaintake \d/m, { timeoutMs: 10_000 });
 
-    await demo.step({
-      id: 'assert-outcome',
-      title: 'Assert the outcome',
-      subtitle: 'Declare an assert — a wrong end state fails the run.',
-      target: page.locator('#ln-assert'),
-      action: 'point',
-      holdMs: 2_400,
-      run: () => Promise.resolve(),
-    });
-
-    await demo.step({
-      id: 'step-anatomy',
-      title: 'Declare each step',
-      subtitle: 'A step names its target and action: click or type.',
-      target: page.locator('#ln-step'),
-      action: 'point',
-      holdMs: 2_600,
-      run: () => Promise.resolve(),
-    });
-
-    await page.goto(`${baseURL}/validate.html`, { waitUntil: 'load' });
     await demo.chapter('Validate');
+    await term.run('clear', { id: 'clear', title: 'Clear the screen' });
 
-    await demo.step({
+    await term.run(`plaintake validate ${SCENARIO}`, {
       id: 'validate',
       title: 'Validate before recording',
-      subtitle: 'One command checks the scenario before filming.',
-      target: page.getByRole('button', { name: 'plaintake validate' }),
-      action: 'click',
-      holdMs: 2_400,
-      run: () => page.getByRole('button', { name: 'plaintake validate' }).click(),
+      subtitle: 'A demo is one TypeScript file. validate checks it before any browser starts.',
+      holdMs: 1_800,
     });
+    await term.waitForText('validate ok', { timeoutMs: 30_000 });
 
-    await demo.assert({
-      id: 'validate-ok',
-      title: 'Validation output is visible',
-      run: () => page.getByText('validate ok:').waitFor({ state: 'visible' }),
-    });
-
-    await page.goto(`${baseURL}/run.html`, { waitUntil: 'load' });
     await demo.chapter('Record');
-
-    await demo.step({
+    await term.run(`plaintake run ${SCENARIO} --output out --fixture --subtitles hard`, {
       id: 'run-command',
       title: 'One command records',
-      subtitle: 'Point plaintake run at the scenario and your app.',
-      target: page.getByRole('button', { name: 'plaintake run' }),
-      action: 'click',
-      holdMs: 2_400,
-      run: () => page.getByRole('button', { name: 'plaintake run' }).click(),
+      subtitle: 'One command films it in Chromium and renders it with FFmpeg.',
+      holdMs: 1_800,
     });
+
+    // The run keeps recording in the background while the browser holds the turn.
+    await demo.turn(web);
+    await demo.chapter('The scenario');
+
+    await web.step({
+      id: 'scenario-file',
+      title: 'Plain TypeScript',
+      subtitle: 'While it records — this is the file it follows, defineDemo and all.',
+      target: web.page.locator('#blk-define'),
+      action: 'point',
+      holdMs: 2_400,
+      run: () => Promise.resolve(),
+    });
+
+    await web.page.locator('#blk-step').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await web.step({
+      id: 'step-anatomy',
+      title: 'Declare each step',
+      subtitle: 'A step names its target, its action and the caption you are reading.',
+      target: web.page.locator('#blk-step'),
+      action: 'point',
+      holdMs: 2_600,
+      run: () => Promise.resolve(),
+    });
+
+    await web.page.locator('#blk-assert').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await web.step({
+      id: 'assert-outcome',
+      title: 'Assert the outcome',
+      subtitle: 'An assert fails the run if the app ends up in the wrong state.',
+      target: web.page.locator('#blk-assert'),
+      action: 'point',
+      holdMs: 2_400,
+      run: () => Promise.resolve(),
+    });
+
+    await demo.turn(term.actor);
+    await demo.chapter('The bundle');
+    await term.waitForText('run ok', { timeoutMs: 120_000 });
 
     await demo.step({
       id: 'rendered',
-      title: 'The run writes demo.mp4',
-      subtitle: 'Chromium records; FFmpeg renders the film.',
-      target: page.getByText('1080p30'),
+      title: 'The run wrote the MP4',
+      subtitle: 'Done: one MP4, captions burned in.',
+      target: term.getByText('run ok'),
       action: 'point',
-      holdMs: 2_200,
-      run: () => page.getByText('1080p30').waitFor({ state: 'visible' }),
-    });
-
-    await page.goto(`${baseURL}/watch.html`, { waitUntil: 'load' });
-    await page.waitForFunction(
-      () => (window as { __demoReady?: boolean }).__demoReady === true,
-      undefined,
-      { timeout: 30_000 },
-    );
-
-    await demo.step({
-      id: 'watch-output',
-      title: 'Watch the actual output',
-      subtitle: 'This is the exact file the run wrote.',
-      target: page.getByRole('button', { name: 'Play the recorded demo' }),
-      action: 'click',
-      holdMs: 6_500,
-      run: () => page.getByRole('button', { name: 'Play the recorded demo' }).click(),
-    });
-
-    await demo.assert({
-      id: 'segment-played',
-      title: 'The recorded segment played',
-      run: async () => {
-        const at = await page.evaluate(() => document.querySelector('video')?.currentTime ?? 0);
-        // The player seeks to 7.5 s (the review page) and plays through the approval; past
-        // 10 s means the Approve click and the approved card really played on camera.
-        if (at <= 10) throw new Error(`example video only reached ${at.toFixed(1)}s`);
-      },
-    });
-
-    await page.goto(`${baseURL}/bundle.html`, { waitUntil: 'load' });
-    await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    await demo.chapter('The bundle');
-
-    await demo.step({
-      id: 'bundle-tree',
-      title: 'More than a video',
-      subtitle: 'Captions, a manifest and a trace ship beside the MP4.',
-      target: page.locator('#row-vtt'),
-      action: 'point',
-      holdMs: 2_400,
+      holdMs: 1_800,
       run: () => Promise.resolve(),
     });
 
-    await demo.step({
+    await term.run('ls out', {
+      id: 'bundle-tree',
+      title: 'More than a video',
+      subtitle: 'Captions, a manifest and a trace ship beside it.',
+      holdMs: 2_200,
+    });
+    await term.waitForText('manifest.json', { timeoutMs: 5_000 });
+
+    // The MP4 exists now; load it into the player before cutting to it.
+    await web.page.goto(`${baseURL}/watch.html`, { waitUntil: 'load' });
+    await web.page.waitForFunction(() => (window as { __demoReady?: boolean }).__demoReady === true, undefined, {
+      timeout: 30_000,
+    });
+
+    await demo.turn(web);
+    await web.click(web.page.getByRole('button', { name: 'Play the recorded demo' }), {
+      id: 'watch-output',
+      title: 'Watch the actual output',
+      subtitle: 'And this is the exact file that run just wrote.',
+      holdMs: 1_000,
+    });
+    await demo.waitFor({
+      id: 'output-played',
+      title: 'The recorded video played to the end',
+      timeoutMs: 60_000,
+      until: () =>
+        web.page.waitForFunction(() => (window as { __demoEnded?: boolean }).__demoEnded === true, undefined, {
+          timeout: 0,
+        }),
+    });
+
+    await demo.turn(term.actor);
+    await term.run('plaintake verify out', {
       id: 'verify',
       title: 'Prove it later',
-      subtitle: 'Verify re-checks every artifact against the manifest.',
-      target: page.getByRole('button', { name: 'plaintake verify' }),
-      action: 'click',
-      holdMs: 2_400,
-      run: () => page.getByRole('button', { name: 'plaintake verify' }).click(),
+      subtitle: 'verify re-checks every artifact against the manifest.',
+      holdMs: 1_800,
     });
+    await term.waitForText('verify ok', { timeoutMs: 30_000 });
 
     await demo.step({
       id: 'whole-loop',
       title: 'That is the whole loop',
-      subtitle: 'Install, write, validate, run — then ship the video.',
-      target: page.locator('#row-demo'),
+      subtitle: 'Write, validate, run, verify — then ship the video.',
+      target: term.getByText('verify ok'),
       action: 'point',
       holdMs: 2_600,
       run: () => Promise.resolve(),

@@ -4,12 +4,17 @@
  * starts before recording. Zero dependencies on purpose: the recipe in README.md should be
  * runnable with nothing but node.
  *
- * Serves ./pages at the root, plus two virtual mounts so nothing derived is ever copied
- * into public/ (which syncs to the public repository and is pinned by an exact file list
- * in test/integration/release-docs.spec.ts):
+ * Serves ./pages at the root, plus three virtual mounts into the terminal's working directory
+ * (WORKSPACE, which `make quickstart-demo` creates fresh) so nothing derived is ever copied
+ * into public/ (which syncs to the public repository and is pinned by an exact file list in
+ * test/integration/release-docs.spec.ts):
  *
- *   /assets/fonts/NotoSans-Regular.ttf  -> <repo>/assets/fonts/NotoSans-Regular.ttf
- *   /assets/example-demo.mp4            -> <repo>/artifacts/release-approval/output/release-approval.mp4
+ *   /assets/fonts/NotoSans-Regular.ttf     -> <repo>/assets/fonts/NotoSans-Regular.ttf
+ *   /workspace/release-approval.demo.ts    -> WORKSPACE/release-approval.demo.ts
+ *   /assets/example-demo.mp4               -> WORKSPACE/out/output/release-approval.mp4
+ *
+ * The MP4 does not exist when the server starts: the recording's own terminal writes it,
+ * and the player page fetches it only after that run has finished.
  *
  * Usage: node serve.mjs [--port 4173]   (or QUICKSTART_PORT=…)
  */
@@ -22,16 +27,19 @@ import { fileURLToPath } from 'node:url';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');
 const PAGES = join(HERE, 'pages');
+const WORKSPACE = join(REPO, 'artifacts', 'quickstart-demo-workspace');
 
 const MOUNTS = new Map([
   ['/assets/fonts/NotoSans-Regular.ttf', join(REPO, 'assets', 'fonts', 'NotoSans-Regular.ttf')],
-  ['/assets/example-demo.mp4', join(REPO, 'artifacts', 'release-approval', 'output', 'release-approval.mp4')],
+  ['/workspace/release-approval.demo.ts', join(WORKSPACE, 'release-approval.demo.ts')],
+  ['/assets/example-demo.mp4', join(WORKSPACE, 'out', 'output', 'release-approval.mp4')],
 ]);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.ts': 'text/plain; charset=utf-8',
   '.ttf': 'font/ttf',
   '.mp4': 'video/mp4',
 };
@@ -40,9 +48,9 @@ const argv = process.argv.slice(2);
 const portFlag = argv.indexOf('--port');
 const port = Number(portFlag >= 0 ? argv[portFlag + 1] : process.env.QUICKSTART_PORT ?? 4173);
 
-/** Resolve a request path to a file, or null. Only the docroot and the two exact mounts. */
+/** Resolve a request path to a file, or null. Only the docroot and the exact mounts. */
 function resolveFile(pathname) {
-  const clean = pathname.split('?')[0].replace(/\/+$/, '') || '/install.html';
+  const clean = pathname.split('?')[0].replace(/\/+$/, '') || '/code.html';
   if (MOUNTS.has(clean)) return MOUNTS.get(clean);
   if (!/^\/[\w.-]+$/.test(clean)) return null; // flat pages dir; rejects traversal
   const file = join(PAGES, clean.slice(1));
@@ -68,7 +76,7 @@ createServer((req, res) => {
   if (!file) return sendError(res, 404, 'not found');
   if (!existsSync(file)) {
     return pathname === '/assets/example-demo.mp4'
-      ? sendError(res, 404, 'example video missing — run `make quickstart-demo` first')
+      ? sendError(res, 404, 'example video missing — the terminal has not finished `plaintake run` yet')
       : sendError(res, 404, 'not found');
   }
 

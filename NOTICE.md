@@ -159,6 +159,17 @@ is two files of ours that throw if anything ever calls them. See
 libvips or sharp is redistributed.** `onnxruntime-web`, also a dependency of Transformers.js, is
 likewise not fetched or shipped: the Node build does not import it.
 
+**`@lydell/node-pty` 1.1.0 — MIT (Microsoft and contributors), and `@xterm/xterm` 6.0.0 — MIT.**
+*Redistributed*, vendored beside the executable for the terminal source: the PTY a scenario's
+command runs in, and the page that draws it. `@lydell/node-pty` is a native module with one
+prebuilt package per platform (`@lydell/node-pty-<platform>-<arch>`); only the host's is shipped,
+and its licence is the main package's MIT text, which the Linux packages do not carry themselves.
+Both are fetched by `scripts/fetch-terminal-runtime.ts` against committed SHA-256 digests.
+
+**Noto Sans Mono — SIL Open Font License 1.1.** The terminal's typeface, shipped unmodified at
+`packages/terminal/assets/fonts/NotoSansMono-Regular.ttf` with `OFL.txt` beside it; its SHA-256 is
+in `packages/terminal/assets/fonts/checksums.txt`.
+
 None of these requires a credential, and none is contacted while recording or rendering.
 
 ## MCP SDK, Zod, and the toolchain

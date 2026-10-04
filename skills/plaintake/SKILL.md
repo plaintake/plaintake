@@ -19,12 +19,15 @@ repository.
 
 ## When to use
 
-Demos of a web app — your own (`--base-url`) or the bundled fixture (`--fixture`);
+Demos of a web app — your own (`--base-url`) or the bundled fixture (`--fixture`); of a CLI
+or TUI, recorded live in a terminal (`terminal:` in the scenario, no target), alone or taking
+turns with a web app (`terminal.browser: true`, with a target for the web part);
 re-rendering a bundle (captions soft ↔ hard); verifying a bundle's hashes; turning an
 existing Playwright trace into a draft scenario (`plaintake import`, CLI only).
 
-A CLI or log step inside a web demo is fine: run the real command from the scenario and draw
-its output into the page as a terminal panel (`docs/patterns.md` → Showing a terminal).
+A CLI step inside a web demo: either declare `terminal.browser: true` and turn between the
+real shell and the web app (`docs/patterns.md` → Terminal and browser together), or run the
+command from the scenario and draw its output into the page as a panel (→ Showing a terminal).
 
 Not PlainTake: OS screen recording, page or microphone audio (sound is synthesized narration
 only), non-deterministic content, any other viewport. macOS arm64, Linux x64 and Linux arm64 (or Docker).
@@ -41,7 +44,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 |---|---|
 | `plaintake validate <file>` | Check a scenario. No browser. Always first. |
 | `plaintake init [<name>]` | Scaffold a starter scenario against the bundled fixture app (plus a starter `plaintake.config.json` when none exists) — then validate it. CLI only. |
-| `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target. |
+| `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target, except a `terminal` scenario without `browser`, which takes none. |
 | `plaintake check <scenario> … --update-baseline` | Write `<name>.baseline.json` beside the scenario from a passing recording. Afterwards `check` and `run` exit 7 when a step, assertion, or a target's name or role drifts from it. `--no-baseline` skips the comparison. CLI only. |
 | `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1] [--reframe letterbox\|follow]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
@@ -64,7 +67,9 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 
 `demo` methods: `step` (one user-visible action; `target` positions the cursor/camera and
 **never acts**; `run` does the work), `assert`, `chapter`, `mask`, `waitFor`, `pause`,
-`handoff` (a person takes the browser).
+`handoff` (a person takes the browser), `actor`/`turn` (`turn(actor, { card: false })` is a hard
+cut). A `terminal` scenario is also handed `term`: `run`, `type`, `press`, `waitForText`,
+`getByText`, `cells`, `screenText`, `assert`, and `actor` with `terminal.browser`.
 
 Recording, rendering, MCP, narration, both caption modes and MP4 chapter markers are free on
 every tier; a licence buys camera zoom, credit removal/custom outro, and the theme — accent
@@ -124,7 +129,9 @@ precedence; a source checkout needs it installed in your project.
 2. **Camera zoom and narration are frozen at record time.** A run without them cannot be
    re-rendered into them — re-record. Caption mode is the opposite: any bundle re-renders
    soft ↔ hard.
-3. **Exactly one run target.** `--base-url` or `--fixture`, never both, never neither (exit 2).
+3. **Exactly one run target.** `--base-url` or `--fixture`, never both, never neither (exit 2)
+   — except a `terminal` scenario, which takes **none**, unless it declares
+   `terminal.browser: true`, when it takes exactly one for the web part.
 4. **A `handoff` needs a person, a visible browser and a real terminal.** Declare `handoff:
    'preflight'` (or `'session'`) in the scenario **metadata**, not on the call — it is read
    before Chromium starts. Refused with `--fixture`, over MCP without elicitation, and
@@ -164,13 +171,17 @@ precedence; a source checkout needs it installed in your project.
    becomes 4:3 and is filled with a window that follows the camera (1.33× the letterbox's size),
    cutting off the sides of the frame. It re-cuts an existing camera-zoom bundle with
    `render --aspect 9:16 --reframe follow`, no re-record.
+11. **Never type a secret into a terminal.** List the variable in `terminal.env` and
+   `terminal.secrets` and let the program read it from the environment; `term.type`, `run`
+   and `press` refuse a declared value (exit 2). `secrets` masks the terminal only — a web
+   actor's pixels need `demo.mask`.
 
 ## Deeper reference
 
 Full DSL — metadata, `preflight`/`warmup`, the `intro` card, camera framing, handoff modes:
 <https://github.com/plaintake/plaintake/blob/main/docs/scenarios.md>. App-side recording
-patterns — idempotent seeding, Mailpit OTP polling, persona switching, an in-page terminal
-panel for CLI output, console-error hygiene:
+patterns — idempotent seeding, Mailpit OTP polling, persona switching, a live terminal (alone or
+taking turns with the web app), an in-page terminal panel for CLI output, console-error hygiene:
 <https://github.com/plaintake/plaintake/blob/main/docs/patterns.md>. Metadata schema:
 <https://github.com/plaintake/plaintake/blob/main/schema/scenario.schema.json>. When in
 doubt, the MCP tool descriptions and `plaintake --help` are authoritative.

@@ -116,7 +116,143 @@ it is filmed, login and all — which is right only when signing in *is* the dem
 works is switching personas inside a step: a step is one narrated action by one person, and
 a cookie jar emptying mid-step is a recording that lies about who is acting.
 
-## Showing a terminal: draw the output into the page
+## Showing a terminal
+
+There are two ways, and which one fits depends on whether the terminal *is* the demo.
+
+### A live terminal: declare `terminal:`
+
+When the thing being shown is a CLI or a TUI, declare `terminal` in the scenario. PlainTake
+starts the command in a real PTY, draws it with xterm.js in a local page, and films that
+page like any other — so captions, narration, the cursor, the camera, highlights and
+chapters all work unchanged. The scenario's `run` is handed a `term`:
+
+```ts
+export default defineDemo({
+  // ...the usual schema, id, viewport, locale, timezoneId, colorScheme, reducedMotion
+  terminal: {
+    command: ['./bin/mycli', 'menu'],   // argv, never a shell string; omit for an interactive bash
+    cwd: '.',                           // relative to the scenario file
+    env: ['API_TOKEN'],                 // copied from your environment; nothing else is
+    secrets: ['API_TOKEN'],             // values masked as bullets; must also be in env
+  },
+  async run({ demo, term }) {
+    if (term === undefined) throw new Error('a terminal scenario is handed term');
+    await term.waitForText('Quit', { timeoutMs: 10_000 });
+    await term.press('1', { title: 'Check status', subtitle: 'Press 1 for status.', holdMs: 2500 });
+    await term.waitForText('all green', { timeoutMs: 10_000 });
+    await demo.step({
+      id: 'point-status', title: 'Status', subtitle: 'Status is green.',
+      target: term.getByText('all green'), action: 'point', highlight: true, holdMs: 2500,
+      run: async () => {},
+    });
+    await term.press('q', { title: 'Quit', subtitle: 'Quit the app.', expectExit: true });
+  },
+});
+```
+
+Record it with **no target**: `plaintake run mycli.demo.ts --output out/mycli`. A terminal
+scenario refuses `--base-url` and `--fixture` (exit 2) because it starts its own page —
+unless it declares `browser: true` to share the video with a web app, see
+[Terminal and browser together](#terminal-and-browser-together). The interactive `plaintake`
+menu runs terminal scenarios too: it skips the target question, or asks only for the
+browser's URL when the scenario needs one.
+
+What makes it work, and what bites:
+
+- **Give every step a `holdMs` (or narration).** A terminal step finishes almost instantly —
+  a keypress is milliseconds — so without a hold the steps bunch up at the start and the
+  captions run on past the last thing the terminal drew, over a frozen final frame.
+- **Strings match literally.** `term.waitForText('1.5 (beta)')` and `term.getByText(...)`
+  look for exactly those characters; pass a `RegExp` when you want a pattern.
+- **Key spellings are Playwright's.** `term.press('Enter')`, `'Space'`, `'Ctrl+C'`, and a
+  space-separated sequence for a chord prefix: `'Ctrl+B c'`. `term.type(text)` types
+  character by character at a fixed pace; `term.run(line)` types the line and presses Enter.
+- **Say when the program is meant to end.** A process that exits during a step without
+  `expectExit: true` fails the recording (exit 4), naming the step — so a crash is never
+  filmed as a finished demo.
+- **The environment is clean.** A temporary `HOME`, a `$ ` prompt, and a fixed `PATH`
+  (`/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`). Your dotfiles do not
+  load and your variables do not leak in: list each one the program needs in `env`, and add
+  `'PATH'` there to inherit your own `PATH` instead.
+- **Secrets come from the environment and are never typed.** Each `secrets` value is
+  replaced with bullets before xterm draws it. As a backstop the screen is also sampled after
+  each step and wait and once at the end — a sample, not a continuous watch, so a value that
+  flashes up and is gone between samples is not caught by it. If a sample finds a value, the
+  recording stops and **nothing is kept** — no video, no bundle. Typing a declared secret with
+  `term.type`, `term.run` or `term.press` is refused (exit 2), because the trace records
+  keystrokes. An unset or empty secret refuses the run (exit 2).
+- **Hooks that open a page are refused** (exit 2): `preflight` and `warmup` would be handed
+  the terminal page's address, and the page accepts one connection. Keep the page on the
+  terminal throughout — a step that navigates it away fails the recording (exit 4). (With
+  `browser: true` the refusal stands, for a different reason: a hook runs on the terminal's
+  page and context, so a sign-in it made would never reach the web actor's own context.)
+- **The program must print something.** One that shows nothing within 30 s of starting (such
+  as `cat`, waiting for input) fails the recording (exit 4); print a banner or prompt first.
+- **`uiScale` is refused** (exit 2): the font size already follows `cols` × `rows`. Change
+  the grid to make the text larger.
+
+### Terminal and browser together
+
+When the demo goes back and forth — run a command, check the web app, return to the shell —
+declare `browser: true` in `terminal`. The terminal becomes an actor named `term`, the web app
+is another actor, and they take strictly sequential turns on one continuous recording (capture
+is still one browser context and one page at any instant). Record it with exactly **one**
+of `--base-url` or `--fixture`: `baseURL` in `run()` is the web target, and the terminal
+starts on its own.
+
+```ts
+terminal: { command: ['./bin/mycli', 'menu'], cwd: '.', browser: true, label: 'Shell' },
+async run({ demo, term, baseURL }) {
+  if (term === undefined) throw new Error('a terminal scenario is handed term');
+  await term.waitForText('Quit', { timeoutMs: 10_000 });
+  await term.press('1', { title: 'Check status', subtitle: 'Press 1 for status.', holdMs: 2000 });
+
+  const web = await demo.actor('web', { label: 'Web' });
+  await web.page.goto(`${baseURL}/settings`);          // preload off screen, so the cut lands on a page
+  await demo.turn(web);                                 // a hard cut
+  await web.click(web.page.getByRole('link', { name: 'API Keys' }), {
+    id: 'open-keys', title: 'Open API keys', subtitle: 'Open the API keys page.', holdMs: 2000,
+  });
+
+  await demo.turn(term.actor, { card: { lines: ['Back to the terminal'] } });   // a carded return
+  await term.press('q', { title: 'Quit', subtitle: 'Quit the app.', expectExit: true, holdMs: 2000 });
+}
+```
+
+- **A turn is a hard cut by default.** Set `transition: 'card'` in `terminal` to make the
+  "Now: <label>" card the default instead, and decide per turn with `{ card: {...} }` (a card)
+  or `{ card: false }` (a cut). `card: true` is refused (exit 2). `label` names the terminal
+  on cards and the corner badge (default `Terminal`); `label` and `transition` need
+  `browser: true`.
+- **Preload the page you cut to.** A cut shows the next actor's first frame at once, so
+  `web.page.goto(...)` while the terminal still holds the turn — raw Playwright, nothing
+  recorded — lets the cut land on a rendered page instead of a blank load.
+- **`term.run`, `type`, `press` and `waitForText` are refused (exit 2) while the web actor
+  holds the turn.** Turn back with `demo.turn(term.actor)` first.
+- **Two things are narrower than they look.** The Playwright trace covers only the terminal's
+  context. And `terminal.secrets` masks only what the terminal draws, never web pixels — use
+  `demo.mask` for a secret on a web page.
+- **The cursor jumps at a cut** rather than gliding across it, because the frame changes
+  entirely.
+- **Give a narrated step before a cut a `holdMs` close to its reading time.** If its caption
+  outlasts the capture the cut freezes the outgoing actor's last frame for the difference, so
+  the next actor's first cue still starts on the next actor's first frame.
+- **Every joint is frame-exact in a terminal-and-browser scenario**, cut or card. A plain web
+  scenario that only ever uses cards and explain scenes between actors (no terminal, no cut)
+  keeps the older placement, which promises no bound: each actor's recording can run longer
+  than its turn (by a few frames on a typical web page, and a turn under about a second is
+  recorded as a full second), so frames of the neighbouring actor can show at a joint, and a cue
+  that overruns its segment shifts everything after it. Add a cut, or lengthen `holdMs`, if
+  that shows.
+
+The same rules apply: no `preflight`/`warmup`, and `uiScale` must be 1. A bundle with a cut
+cannot be re-rendered by a release older than the one that wrote it.
+
+### The static option: draw the output into the page
+
+When a CLI step is one moment inside a *web* demo and you do not need the real shell on
+screen, drawing the output is lighter than a live terminal. (If you do, see the section above.)
 
 PlainTake films a browser, never your desktop, so a CLI step — issuing a key, running a
 migration, grepping a server log — has no pixels of its own. The recipe: run the real command

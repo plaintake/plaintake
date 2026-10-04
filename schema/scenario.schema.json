@@ -164,6 +164,74 @@
         }
       }
     },
+    "terminal": {
+      "type": "object",
+      "properties": {
+        "shell": {
+          "default": "bash",
+          "type": "string",
+          "enum": [
+            "bash",
+            "zsh",
+            "sh"
+          ]
+        },
+        "command": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cols": {
+          "default": 120,
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 200
+        },
+        "rows": {
+          "default": 34,
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 60
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "env": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "secrets": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "browser": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition": {
+          "type": "string",
+          "enum": [
+            "cut",
+            "card"
+          ]
+        }
+      }
+    },
     "pronunciations": {
       "type": "object",
       "propertyNames": {

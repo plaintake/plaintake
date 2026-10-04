@@ -8,7 +8,7 @@
 <body>
   <header class="top">
     <span class="wordmark">Plain<span class="take">Take</span></span>
-    <span class="crumb">quickstart · 04 — Record</span>
+    <span class="crumb">quickstart · the file the run just wrote</span>
     <span class="site">plaintake.github.io</span>
   </header>
 
@@ -16,7 +16,7 @@
     <section class="card">
       <div class="titlebar">
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <span class="title">artifacts/release-approval/output/release-approval.mp4</span>
+        <span class="title">out/output/release-approval.mp4</span>
       </div>
       <div class="player-wrap">
         <div class="player">
@@ -29,24 +29,28 @@
             </button>
           </div>
         </div>
-        <p class="meta">release-approval.mp4 · 14 s · 1920×1080 · 30 fps — the exact file the run wrote</p>
+        <p class="meta" id="meta">release-approval.mp4 · 1920×1080 · 30 fps — the exact file the run wrote</p>
       </div>
     </section>
   </main>
 
   <script>
-    // The player embeds the real output of `make demo`, fetched as a blob so playback
-    // needs no HTTP Range handling and the seek below is instant. The scenario waits
-    // for window.__demoReady before filming, seeks to the interesting stretch, and
-    // starts playback from this button's click — the declared target of its step.
+    // The player embeds the MP4 the terminal's `plaintake run` wrote a few seconds earlier
+    // in this same recording, fetched as a blob so playback needs no HTTP Range handling.
+    // The scenario waits for window.__demoReady before cutting here, starts playback from
+    // this button's click — the declared target of its step — and holds until
+    // window.__demoEnded.
     (async () => {
       const video = document.getElementById('demo-video');
       const res = await fetch('assets/example-demo.mp4');
       const blob = await res.blob();
       video.src = URL.createObjectURL(blob);
       await new Promise((resolve) => video.addEventListener('loadedmetadata', resolve, { once: true }));
-      video.currentTime = 7.5; // review page → Approve 0.2.0 → the approved card
+      document.getElementById('meta').textContent =
+        `release-approval.mp4 · ${Math.round(video.duration)} s · 1920×1080 · 30 fps — the exact file the run wrote`;
+      video.addEventListener('ended', () => { window.__demoEnded = true; }, { once: true });
       video.pause();
+      await document.fonts.ready;
       window.__demoReady = true;
     })();
 

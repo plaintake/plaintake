@@ -61,6 +61,7 @@ export default defineDemo({
 | `colorScheme` | `'light'` | yes | The only supported scheme. |
 | `reducedMotion` | `'reduce'` | yes | The only supported value — recordings must not depend on CSS motion. |
 | `allowedConsoleErrors` | string array | no, defaults to `[]` | Exact console error strings this scenario tolerates. Anything else fails the run. |
+| `terminal` | object | no | Record a live terminal instead of (or beside) a web app. See [Recording a terminal](#recording-a-terminal). Fields: `shell` (`'bash' \| 'zsh' \| 'sh'`, default `'bash'`), `command` (argv array, omit for an interactive shell), `cols` (40–200, default 120), `rows` (12–60, default 34), `cwd`, `env` (names copied from your environment), `secrets` (names, a subset of `env`, masked by value), `browser` (`true` adds a web actor; see below), `label` and `transition` (`'cut' \| 'card'`; both need `browser: true`). `uiScale` must be 1 (exit 2 otherwise), and `preflight`/`warmup` are refused. |
 | `handoff` | `'none' \| 'preflight' \| 'session'` | no, defaults to `'none'` | See [Handing the browser to a person](#handing-the-browser-to-a-person). |
 | `handoffTimeoutMs` | integer, 5000–300000 | no, defaults to `120000` | How long a handoff waits for a person before giving up. 300000 (5 minutes) is a hard ceiling — past that a wait is indistinguishable from a hang. |
 | `intro` | object | no | See [The opening card](#the-opening-card). |
@@ -83,7 +84,10 @@ result, and the bundle is left at `.failed` for inspection rather than as debris
 ## The `demo` DSL
 
 Everything below is a method on the `demo` object `run()` receives, alongside `page` (a
-Playwright `Page`) and `baseURL` (the string passed to `--base-url`/`fixture`).
+Playwright `Page`) and `baseURL` (the string passed to `--base-url`/`fixture`). A scenario
+that declares `terminal` is also handed `term`, and its `page` is the terminal's own; with
+`terminal.browser: true`, `baseURL` is the web target and the browser is an actor you name
+with `demo.actor`.
 
 | Method | Signature | Purpose |
 |---|---|---|
@@ -110,6 +114,48 @@ Two more hooks can sit beside `run()` in the same `defineDemo()` call:
 - **`warmup({ page, demo, baseURL })`** — runs after `preflight`'s hand-back and before
   recording begins. Same restricted `demo` as `preflight`, for the same reason. Use it to
   navigate to the page the video should open on, when starting cold would film a blank load.
+
+## Recording a terminal
+
+A scenario with a `terminal` block records a live PTY drawn by xterm.js, filmed like any other
+page, so captions, narration, cursor, camera, highlights and chapters work unchanged. Without
+`browser` it takes neither `--base-url` nor `--fixture` (exit 2). `run()` is handed `term`:
+
+| Verb | Purpose |
+|---|---|
+| `term.run(line, meta?)` | Types the line and presses Enter. |
+| `term.type(text, meta?)` | Types at a fixed per-character pace. |
+| `term.press(keys, meta?)` | Playwright key names, space-separated for a chord: `'Enter'`, `'Ctrl+B c'`. |
+| `term.waitForText(pattern, {timeoutMs?, id?, title?})` | Waits for text on the screen; `demo.waitFor`'s bounds. Times out as exit 4. A string matches literally, a `RegExp` is a regex. |
+| `term.getByText(pattern)` / `term.cells({row, col, width, height})` | Locators over the screen, to use as a step's `target`. |
+| `term.screenText()` | The visible screen, one line per row. |
+| `term.assert({id, title, run})` | `demo.assert` against the terminal. |
+| `term.actor` | Only with `browser: true`: the handle for `demo.turn(term.actor)`. |
+
+The verbs that type (`run`, `type`, `press`) take the usual step meta plus `expectExit: true`
+when the process ending is the point. A process that exits otherwise fails the run (exit 4).
+Secrets named in `secrets` are masked by value and are never typed (exit 2 if you try).
+[Patterns](patterns.md#a-live-terminal-declare-terminal) lists what bites.
+
+### Terminal and browser together
+
+`terminal: { ..., browser: true }` makes the terminal the default actor `term` (labelled
+`terminal.label`, default `Terminal`) and lets you name a web actor with `demo.actor('web')`.
+Record with exactly one of `--base-url` or `--fixture`: `baseURL` in `run()` is the web
+target. `validate` needs no target and says so.
+
+| Call | Meaning |
+|---|---|
+| `demo.turn(actor)` | The scenario's default switch: a **hard cut**, or with `transition: 'card'` the synthesised "Now: <label>" card. |
+| `demo.turn(actor, { card: { lines, narration?, durationMs? } })` | A full-frame card for this turn. |
+| `demo.turn(actor, { card: false })` | A hard cut for this turn, whatever the default. |
+
+`card: true` or a non-object is refused (exit 2). `term.run`, `type`, `press` and
+`waitForText` are refused (exit 2) while the web actor holds the turn. A cut makes the cursor
+jump rather than glide. The Playwright trace covers only the terminal, and `terminal.secrets`
+never masks web pixels. `preflight` and `warmup` are refused (exit 2) for a terminal scenario,
+`browser` or not: with `browser` they would run in the terminal's page and context, so their
+sign-in would never reach the web actor. `uiScale` other than 1 is refused as well.
 
 ## Rules that matter in practice
 

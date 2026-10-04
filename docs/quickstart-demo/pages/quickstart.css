@@ -55,11 +55,13 @@ body {
 
 /* ---- shared chrome ---------------------------------------------------------- */
 
+/* The left padding clears the actor badge the renderer draws in the top-left corner of a
+   multi-actor recording ("Browser"), which would otherwise sit on the wordmark. */
 .top {
   display: flex;
   align-items: baseline;
   gap: 18px;
-  padding: 30px 96px 0;
+  padding: 30px 96px 0 220px;
 }
 
 .top .wordmark { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }

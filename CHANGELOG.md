@@ -4,6 +4,47 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.27.0
+
+**You can record a live terminal.** A scenario can now declare `terminal: { shell | command, cols,
+rows, cwd, env, secrets }` and drive it with a `term` handle — `run`, `type`, `press`,
+`waitForText`, `getByText`, `cells`, `screenText`, `assert` and `expectExit`. The terminal is a
+real PTY drawn by xterm.js in a local page and filmed through the same Chromium capture as any
+other page, so the frame, the 30 fps and the trace are unchanged. It is drawn in Solarized
+Dark, adjusted so dim and bold text stay readable on video, so `ls`, `git` and test runners keep
+their colours, and the bash and zsh prompt is a bold green `$`. It runs in a clean environment
+built from an allowlist only: a temporary HOME, a `$ ` prompt and a fixed PATH (unless you list
+`'PATH'` in `env`), so a recording does not depend on your dotfiles or leak your environment.
+Secrets you declare are masked by value as bullets in the output stream, with a screen sweep as
+the backstop; a leak fails the run (exit 4) and deletes the whole bundle, and typing a secret is
+refused (exit 2). A terminal scenario takes no `--base-url` or `--fixture`. It is reproducible:
+`make reproduce … TARGET=` matched on all six checks on the host and in the container under
+`--network=none`. `plaintake doctor` now reports whether the terminal runtime is ready, and the
+runtime (`@lydell/node-pty` 1.1.0, `@xterm/xterm` 6.0.0 and Noto Sans Mono) ships in the install
+tarball.
+
+**Terminal and browser can share one video.** `terminal.browser: true` adds a browser actor
+(`demo.actor('web')`) and requires `--base-url` or `--fixture`; `demo.turn(web)` and
+`demo.turn(term.actor)` switch between them. The default switch is a hard cut; set
+`terminal.transition: 'card'` to use the "Now: <label>" transition card instead, or pass `{ card: {...} }` or
+`{ card: false }` on a single turn. At a cut the cursor jumps instead of gliding, and the corner
+badge shows which side is on screen; the terminal grid starts below that badge, so the badge
+never covers its first row. In a terminal-and-browser recording, and in any recording
+with a cut, every joint holds the outgoing frame while a caption overruns, so captions stay in
+sync, each side of a joint shows the right actor, and the video runs its full length.
+
+**The TUI menu runs terminal scenarios.** It skips the target question for a terminal scenario,
+or asks only for the browser part when the scenario has one.
+
+**Behaviour changes.** `run` and `check` with no target on a browser scenario still refuse with
+exit 2; the message now adds a terminal hint. With no target, a scenario that cannot be loaded is
+reported by its own error — exit 1 for a missing file, the same as with a target. `demo.turn`
+accepts `{ card: false }` in any scenario.
+
+Existing scenarios and bundles render byte-identically, so nothing needs re-recording. A bundle
+that contains a cut, or any terminal-and-browser bundle, needs 1.27.0 or later to re-render,
+because older versions do not know its plan fields.
+
 ## 1.26.2
 
 **The camera frames the whole target.** Under `--camera zoom` the zoom was picked so the target
