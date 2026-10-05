@@ -280,19 +280,21 @@ await demo.explain({
 ```
 
 `demo.explain()` cuts away from the recording to a full-frame, narrated motion-graphics
-scene — compiled and rendered by the sibling [PlainMotion](https://plainmotion.dev) CLI,
-which must be on `PATH` at record time (`plaintake doctor` reports whether it is). The
+scene, rendered by PlainTake itself after capture finishes — nothing else to install. The
 cut-away is a boundary on the timeline, the same mechanism a multi-actor `demo.turn()`
 uses to hand the browser between two windows: the screencast pauses, the scene plays, and
 recording resumes on the same page with nothing excised. Free on every tier, like every
-authoring verb — the only licence interaction is PlainMotion's own, and it is invisible to
-an author: a free-tier PlainMotion compile would otherwise freeze its own closing credit
-card into the middle of the video, so PlainTake refuses that combination with the
-activation command named, rather than shipping a scene with someone else's credits in it.
+authoring verb.
+
+An explain scene is always narrated — its narration is its clock — so it needs the voice
+model installed (`plaintake install-voice`; `plaintake doctor` reports whether it is) even
+when the rest of the recording is silent. Without it, the run stops at the first cut-away,
+before the capture is split. With `--speech off` the scene is still timed by its narration
+and captioned, but the voice is not laid into the video.
 
 - **`id`** — becomes the directory the frozen scene lives in (`explain/<id>/`) and the
-  generated scene's own id, so it follows PlainMotion's own rule: lower-case alphanumeric
-  and hyphens, starting alphanumeric.
+  generated scene's own id, so it follows the scene id rule: lower-case alphanumeric and
+  hyphens, starting alphanumeric.
 - **`title`** — a human label shown in `inspect` and diagnostics. Never drawn in the video.
 - **`narration`** — what the scene says, and the only source of both the audio and the
   caption: there is no separate caption field, because two strings that are supposed to
@@ -304,12 +306,12 @@ activation command named, rather than shipping a scene with someone else's credi
   |---|---|---|
   | `title` | `headline`, `subtitle?` | A title card. |
   | `process` | `nodes` (2–5, `{id,label}`), `connections?` (`{id,from,to,label?}`), `direction?` (`'horizontal' \| 'vertical'`), `title?`, `caption?` | A left-to-right (or top-to-bottom) flow. |
-  | `comparison` | `left`/`right` (`{heading,points}`), `title?` | Two columns, side by side. |
+  | `comparison` | `left`/`right` (`{heading,items}`), `title?` | Two columns, side by side. |
   | `diagram` | `src` (an svg path, relative to the scenario file), `title?`, `caption?`, `regions?` | An author-supplied svg, imported as-drawn. |
   | `recap` | `items` (strings), `title?` | A closing bullet list. |
 
   Geometry is deliberately absent from every one of these — where a pixel lands is the
-  scene layout's decision, exactly as it is in a `plainmotion.yaml`. An author says what
+  scene layout's decision. An author says what
   exists and what the narration points at, never inches or coordinates.
 - **`cues`** (optional) — `{atPhrase, action, target}`, timing an animation to a phrase in
   `narration` rather than to a numeric offset: rewording the line moves the cue with it
@@ -426,9 +428,9 @@ exactly where you put it.
 - **Each side still auto-repairs.** A segment that is itself long and stalls goes through the
   same whole-line → nudge → split ladder, so `[pause]` composes with the automatic handling
   rather than replacing it.
-- **Not in explain scenes.** `demo.explain` narration is spoken by the separate plainmotion
-  toolchain, which has no split machinery; a `[pause]` there is stripped (never shown, never
-  spoken) but buys no break. Anchor an explain scene's timing with its `atPhrase` cues instead.
+- **Not in explain scenes.** `demo.explain` narration is compiled as one line by the explain
+  scene's own timing, which has no split machinery; a `[pause]` there is stripped (never
+  shown, never spoken) but buys no break. Anchor an explain scene's timing with its `atPhrase` cues instead.
 
 Reach for it sparingly — a line short enough not to stall never needs one, and rewording is
 often clearer than marking. It is the escape hatch for the long line the model mistimes.

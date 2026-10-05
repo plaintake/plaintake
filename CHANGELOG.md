@@ -4,6 +4,25 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.29.0
+
+**Explain scenes no longer need PlainMotion.** `demo.explain()` cut-aways are now compiled and
+drawn by PlainTake itself, so there is nothing to install beside it and no second licence to
+activate. The scene types, cues and authored fields are unchanged, and a scene still lands at the
+same place on the timeline with its narration and captions. An explain scene is always narrated,
+so it needs the voice model (`plaintake install-voice`), even when speech is off. Without the model,
+the run stops at the first cut-away, before capture is split. Bundles recorded with 1.28.0 or
+earlier still verify and re-render unchanged.
+
+- **Fixed:** a `comparison` explain scene's columns take `items`, which is what the scene draws.
+  The scenario type and docs said `points`, which was always refused.
+- **Changed:** `plaintake doctor --json` no longer has a `plainmotion` field, and the human
+  output no longer prints a `plainmotion` line. Explain scenes need only the voice model, which
+  the `speech` field already reports.
+- New bundles keep the scene's project and plan as `explain/<id>/explain.json` and
+  `explain/<id>/explain-plan.json` (previously `plainmotion.yaml` and `plainmotion-plan.json`),
+  and the manifest no longer records `toolchain.plainmotion`.
+
 ## 1.28.0
 
 **One flag for TikTok and YouTube Shorts: `--for tiktok` or `--for shorts`.** It records 9:16

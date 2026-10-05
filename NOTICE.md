@@ -186,6 +186,15 @@ None of these requires a credential, and none is contacted while recording or re
 `@modelcontextprotocol/sdk` (MIT) and `zod` (MIT) are shipped inside the bundled binary.
 Their licence texts travel with the distribution.
 
+`fast-xml-parser` 5.11.1 (MIT) is shipped inside the bundled binary for explain scenes'
+`diagram` type, which imports an author's svg (`@plaintake/motion`). Its runtime dependencies —
+`@nodable/entities`, `anynum`, `fast-xml-builder`, `is-unsafe`, `path-expression-matcher`,
+`strnum` and `xml-naming` — are MIT as well. Their licence texts travel with the distribution.
+
+The explain-scene compiler and renderer (`@plaintake/motion`, `@plaintake/motion-render`) are
+ported from PlainMotion, the same author's own proprietary product, and are covered by this
+product's `LICENSE`.
+
 Node.js, pnpm, TypeScript, Vitest, ESLint, esbuild and dependency-cruiser are build- and
 test-time only and are not redistributed, save for the Node runtime embedded in the
 single-executable build (Node is MIT-licensed, and its own notices ship with it). Exact
