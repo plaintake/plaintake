@@ -4,6 +4,24 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.30.0
+
+**Hook emoji are drawn in colour.** A scenario's `hook:` is now drawn as a picture: PlainTake lays
+it out in Chromium when the hook is set, with the same black-on-white boxes in the same place, and
+the emoji come out in colour from the system's emoji font (Apple Color Emoji on macOS; Noto Color
+Emoji on Linux when it is installed). The picture is kept in the bundle as `captions/hook.png`, a
+source file, so a plain `render` still opens no browser and comes out byte-identical. A
+`render --hook "…"` or `--aspect` re-cut draws the picture again in Chromium, and falls back to
+the old outline emoji if Chromium cannot be started. `--hook none` removes it. Burned-in captions
+still draw emoji as outlines.
+
+- Bundles recorded with 1.29.0 or earlier keep their outline hook and re-render byte-identically.
+  To give one colour emoji without re-recording, re-cut it with its own text:
+  `plaintake render <bundle> --hook "<the same hook>"`.
+- A bundle with a picture hook needs this version to re-render.
+- A two-line hook whose second line has an emoji now sits centred in its box; libass had drawn
+  that line 6 px high.
+
 ## 1.29.0
 
 **Explain scenes no longer need PlainMotion.** `demo.explain()` cut-aways are now compiled and

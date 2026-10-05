@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.29.0
+VERSION=1.30.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.29.0
+VERSION=1.30.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.29.0"
+$VERSION = "1.30.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.29.0
+    version: 1.30.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -342,7 +342,7 @@ each word as it is spoken; your `branding.backgroundColor` around it (`--rounded
 picture's corners); the cursor on; and
 burned-in captions for TikTok, a selectable track for Shorts. Add a hook to the scenario —
 `hook: '3 PDFs → 1, free'` — and it is drawn above the picture for the first 3 seconds, emoji
-and arrows included (emoji as outlines). `plaintake render <bundleDir> --hook '…'` changes it
+and arrows included (emoji in colour, from the recording machine's emoji font). `plaintake render <bundleDir> --hook '…'` changes it
 later without re-recording. Synthesised narration is normalised to -14 LUFS, the level the
 platforms play at, and PlainTake warns when a video is too long for the platform, opens slowly,
 or has a silent, still stretch. `--reframe inset` is the 16:9 counterpart: the picture on your
