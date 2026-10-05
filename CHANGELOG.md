@@ -4,48 +4,6 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
-## 1.28.0
-
-**One flag for TikTok and YouTube Shorts: `--for tiktok` or `--for shorts`.** It records 9:16
-with the new short-form layout, the synthetic cursor on, and the platform's caption mode — burned
-in for TikTok, which shows no uploaded caption track, and a selectable track for Shorts, with
-`captions/captions.srt` to upload beside it. Flags you pass yourself still win, and one that
-contradicts 9:16 is refused. After the run it warns when the video is longer than the platform
-takes as a short (Shorts 3:00, TikTok 10:00), when the first caption arrives after 1.5 s, and when
-the layout was recorded without `--camera zoom`.
-
-**`--reframe social`: a vertical layout built around the feeds' own buttons.** The picture is a
-1080×960 window that follows the camera — larger on a phone than `--reframe follow`'s — placed
-below the feeds' top bar and above their caption block. Captions are bold, sit under the picture
-clear of TikTok's right-hand buttons, and light each word in yellow (or your theme's accent) as it
-is spoken. The picture sits on your `branding.backgroundColor`; `--rounded on` rounds its
-corners, which stay square by default.
-
-**Hooks.** Add `hook: '3 PDFs → 1, free'` (or `{ text, durationMs }`) to a scenario and the line is
-drawn in the band above the picture for the video's first 3 seconds, in black on white boxes like
-the platforms' own text tool. Emoji, arrows, checks and stars are drawn, emoji as outlines (colour
-emoji are not possible in the subtitle renderer). One or two lines: use `\n` for your own break,
-or a long hook is balanced onto two. `plaintake render <bundle> --hook "…"` changes the hook of a
-video you already have, and `--hook none` removes it — no re-recording. A hook that would need a
-third line, or uses a character the bundled fonts cannot draw, is refused before recording (exit
-2). This replaces a separate overlay pass: the hook is in the bundle, hashed and reproducible.
-
-**`--reframe inset` for 16:9.** The whole picture at 90% on your background colour, corners
-rounded with `--rounded on` — the framed look for YouTube and landing pages.
-
-**Narration is normalised to -14 LUFS.** Synthesised narration plays at the level YouTube, TikTok
-and Spotify play everything else at, instead of several decibels quieter; peaks are held under
--3 dBFS so the encoded audio stays under the platforms' -1 dBTP. Narration you supply with
-`--speech file` is left exactly as you mixed it.
-
-**Dead-air notes.** After a narrated run, any stretch of 1.1 s or more with nothing said and
-nothing moving is reported (`video.deadAir`) with its time, so you can shorten the hold there.
-
-**Render changes.** `render` takes `--config`, read only for the background colour when a bundle is
-re-cut into the social or inset layout for the first time. Existing bundles, and every recording
-without `--reframe social|inset` or a hook, render byte-identically. A bundle using the new
-layouts or a hook needs this version to re-render.
-
 ## 1.27.0
 
 **You can record a live terminal.** A scenario can now declare `terminal: { shell | command, cols,

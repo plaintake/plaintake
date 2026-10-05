@@ -121,31 +121,6 @@
         "lines"
       ]
     },
-    "hook": {
-      "anyOf": [
-        {
-          "type": "string",
-          "minLength": 1
-        },
-        {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string",
-              "minLength": 1
-            },
-            "durationMs": {
-              "type": "integer",
-              "minimum": 1000,
-              "maximum": 10000
-            }
-          },
-          "required": [
-            "text"
-          ]
-        }
-      ]
-    },
     "camera": {
       "type": "object",
       "properties": {

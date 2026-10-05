@@ -46,7 +46,7 @@ them — descriptions self-contained, paths sandboxed to `--workspace`. Otherwis
 | `plaintake init [<name>]` | Scaffold a starter scenario against the bundled fixture app (plus a starter `plaintake.config.json` when none exists) — then validate it. CLI only. |
 | `plaintake run <file> --output <dir> (--base-url <url> \| --fixture)` | Record + render. Exactly one target, except a `terminal` scenario without `browser`, which takes none. |
 | `plaintake check <scenario> … --update-baseline` | Write `<name>.baseline.json` beside the scenario from a passing recording. Afterwards `check` and `run` exit 7 when a step, assertion, or a target's name or role drifts from it. `--no-baseline` skips the comparison. CLI only. |
-| `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1] [--reframe letterbox\|follow\|social\|inset] [--hook <text>\|none]` | Re-render the frozen plan. No browser. `--hook` replaces a 9:16 video's hook without re-recording. |
+| `plaintake render <dir> [--subtitles hard\|soft] [--aspect 16:9\|9:16\|1:1] [--reframe letterbox\|follow]` | Re-render the frozen plan. No browser. |
 | `plaintake verify <dir>` | Re-hash every artifact against the manifest. |
 | `plaintake compare <dirA> <dirB>` | Render-determinism gate: re-hash and re-decode two renders that should be identical — exit 6 on any drift, 0 only on a byte-for-byte match. Needs FFmpeg. CLI only. |
 | `plaintake inspect <dir>` | Summarize a bundle — cues, chapters, narration. |
@@ -170,12 +170,7 @@ precedence; a source checkout needs it installed in your project.
    may need re-measuring. For a bigger picture still, add `--reframe follow`: the 9:16 box
    becomes 4:3 and is filled with a window that follows the camera (1.33× the letterbox's size),
    cutting off the sides of the frame. It re-cuts an existing camera-zoom bundle with
-   `render --aspect 9:16 --reframe follow`, no re-record. For TikTok or YouTube Shorts use
-   `--for tiktok` / `--for shorts` instead: the `social` layout (a larger 9:8 window clear of the
-   feeds' own chrome, bold word-lit captions; `--rounded on` for rounded corners) with the
-   platform's caption mode.
-   Give the scenario a `hook: '…'` (one or two lines, emoji allowed) — it is drawn above the
-   picture for the first 3 s; `validate` refuses a hook the bundled fonts cannot draw.
+   `render --aspect 9:16 --reframe follow`, no re-record.
 11. **Never type a secret into a terminal.** List the variable in `terminal.env` and
    `terminal.secrets` and let the program read it from the environment; `term.type`, `run`
    and `press` refuse a declared value (exit 2). `secrets` masks the terminal only — a web

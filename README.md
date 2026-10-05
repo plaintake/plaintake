@@ -1,7 +1,7 @@
-# PlainTake — demo videos you can re-run
+# PlainTake — demo videos as code
 
-> Turns a committed TypeScript file into a narrated browser demo video — locally, with no
-> network at render time and nothing to sign up for.
+> Write a demo once in TypeScript. PlainTake records, narrates and captions it on your machine,
+> and re-records it when your UI changes — for docs, YouTube and Shorts.
 
 You write the demo as code. PlainTake drives a real Chromium through it, times the
 narration, renders the captions, and hands you the video plus everything needed to prove how
@@ -91,7 +91,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.28.0
+VERSION=1.27.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -148,7 +148,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.28.0
+VERSION=1.27.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -165,7 +165,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.28.0"
+$VERSION = "1.27.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -196,7 +196,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.28.0
+    version: 1.27.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -231,14 +231,12 @@ plaintake validate <scenario.ts>
 plaintake run      <scenario.ts> --output <dir> [--base-url <url> | --fixture]
                                   [--subtitles soft|hard] [--cursor on|off]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
-                                  [--reframe letterbox|follow|social|inset]
-                                  [--for tiktok|shorts]
+                                  [--reframe letterbox|follow]
                                   [--speech off|on|file] [--voice <id>]
                                   [--config <path>] [--no-baseline | --update-baseline]
 plaintake check    <scenario.ts> [--base-url <url> | --fixture] [--output <dir>] [--no-baseline | --update-baseline]
 plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
-                                 [--reframe letterbox|follow|social|inset]
-                                 [--for tiktok|shorts] [--hook <text>|none] [--config <path>]
+                                 [--reframe letterbox|follow]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
@@ -334,19 +332,6 @@ are cut off, which is why it follows the camera rather than guessing — record 
 `--camera zoom`. Without a camera it is a fixed centre crop. Like `--aspect` it is render-time:
 `plaintake render <bundleDir> --aspect 9:16 --reframe follow` re-cuts a bundle you already have,
 and `--aspect 9:16` alone cuts it back to the letterbox.
-
-**Making a TikTok or a YouTube Short?** `--for tiktok` (or `shorts`) is one flag for the
-short-form layout, `--reframe social`: a larger 1080×960 window that follows the camera, placed
-clear of the feeds' own top bar, caption block and buttons; bold captions under it that light
-each word as it is spoken; your `branding.backgroundColor` around it (`--rounded on` rounds the
-picture's corners); the cursor on; and
-burned-in captions for TikTok, a selectable track for Shorts. Add a hook to the scenario —
-`hook: '3 PDFs → 1, free'` — and it is drawn above the picture for the first 3 seconds, emoji
-and arrows included (emoji as outlines). `plaintake render <bundleDir> --hook '…'` changes it
-later without re-recording. Synthesised narration is normalised to -14 LUFS, the level the
-platforms play at, and PlainTake warns when a video is too long for the platform, opens slowly,
-or has a silent, still stretch. `--reframe inset` is the 16:9 counterpart: the picture on your
-background colour with a margin.
 
 Recording for more than one product? Commit a `plaintake.config.json` at each product's repo
 root with its own branding — outro card and theme colours, both Pro (see
@@ -564,9 +549,8 @@ Stated up front rather than discovered later:
 - **Capture is always 1920×1080 at 30 fps.** No other capture size, no other frame rate.
   `--aspect` changes the shape of the finished video and nothing else: `9:16` and `1:1`
   letterbox that same capture instead of cropping it, and leaving the flag off gives you the
-  16:9 video this tool has always produced. Crops are opt-in: `--reframe follow` fills a
-  9:16 box with a 4:3 window that follows the camera, cutting off the sides of the frame, and
-  `--reframe social` a 9:8 one, cutting off more.
+  16:9 video this tool has always produced. The one crop is opt-in: `--reframe follow` fills a
+  9:16 box with a 4:3 window that follows the camera, cutting off the sides of the frame.
 - **`uiScale` makes the page bigger, not the video.** `uiScale: 2` in a scenario lays the page
   out at 960×540 and paints it at 2×, like browser zoom — the video is still 1920×1080 and the
   UI is twice the size and sharp, which is what keeps a `9:16` cut readable on a phone. Your
