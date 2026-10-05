@@ -41,6 +41,15 @@ OFL also forbids selling the font *by itself*. Bundling it inside this product i
 that. Source: <https://github.com/notofonts/notofonts.github.io> (hinted static TTF).
 The file's SHA-256 is pinned in `assets/fonts/checksums.txt`.
 
+**The short-form faces — SIL Open Font License 1.1.** `assets/fonts-social/` ships Noto Sans
+Bold, Noto Sans Symbols Bold, Noto Sans Symbols 2 and Noto Emoji (the monochrome outline face,
+variable, rendered at its default instance), each unmodified, with `OFL.txt` (Noto Sans) and
+`OFL-NotoEmoji.txt` beside them. They draw the hook and the social layout's captions, and are
+copied into a bundle only when its plan uses them. Same conditions, same compliance as above.
+Sources: <https://github.com/notofonts/notofonts.github.io> (hinted static TTFs) and
+<https://github.com/google/fonts/tree/main/ofl/notoemoji>; SHA-256s pinned in
+`assets/fonts-social/checksums.txt`, fetched by `scripts/fetch-font.sh`.
+
 ## FFmpeg — GPL, and deliberately not redistributed
 
 FFmpeg is **not shipped with the product**. It is invoked as a separate executable that
