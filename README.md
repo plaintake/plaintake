@@ -1,7 +1,10 @@
 # PlainTake — demo videos as code
 
-> Write a demo once in TypeScript. PlainTake records, narrates and captions it on your machine,
-> and re-records it when your UI changes — for docs, YouTube and Shorts.
+> Write the demo in TypeScript — or let your AI agent write it. PlainTake records your real app,
+> narrates and captions it, and re-records it when your UI changes. Deterministic, versioned in
+> Git, runs on your machine.
+>
+> **Define the demo in code. Record it deterministically. Version it in Git. Let AI write the scenes.**
 
 You write the demo as code. PlainTake drives a real Chromium through it, times the
 narration, renders the captions, and hands you the video plus everything needed to prove how
