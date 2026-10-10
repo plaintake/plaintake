@@ -190,6 +190,29 @@ docker run --rm -v "${PWD}:/work" `
   directory writable first (`mkdir -p out && chmod 777 out` — `mkdir -p` first because `chmod`
   on a directory that doesn't exist yet just fails).
 
+### PlainTake Studio (beta, macOS)
+
+PlainTake Studio is a desktop app around the same engine, for people who would rather not use a
+terminal: guided setup, a folder per product, a board to review ideas and finished videos, and a
+calendar that schedules posts through your Buffer account. The AI is your own Claude: Claude
+Desktop or Claude Code connects to Studio over MCP to suggest ideas and write scenarios, and
+Studio never calls a model itself. It carries its own copy of PlainTake, so you do not need the
+CLI installed as well.
+
+- **Macs with Apple silicon only** (M1 or later, macOS 13+).
+- **Download** `PlainTake-Studio-<version>-arm64.dmg` from the
+  [Studio releases](https://github.com/plaintake/plaintake/releases?q=studio) (the newest is at the top) and drag it
+  into Applications. Studio is not notarized yet, so the first launch needs **System Settings →
+  Privacy & Security → Open Anyway**, once.
+- **FFmpeg is still yours to install**, exactly as above (`brew install ffmpeg-full` and
+  `brew link --force --overwrite ffmpeg-full`).
+- **Updates** install themselves on restart; each one is checked against a signature before it
+  is used.
+- **Licence:** the same PlainTake licence and the same Gumroad key as the CLI. Without a key,
+  videos end with the credit card, as on the Free tier.
+
+It is a beta: report anything broken in the [issues](https://github.com/plaintake/plaintake/issues/new/choose).
+
 ### GitHub Actions
 
 [`plaintake/action`](https://github.com/plaintake/action) runs a scenario in CI. By default it
