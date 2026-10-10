@@ -4,6 +4,25 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.31.0
+
+**Record signed in, and edit narration without touching the scenario.**
+
+- **New: `run --storage-state <file>`** starts the recording browser from a saved Playwright
+  storage state (cookies and localStorage), so a product behind a login records signed in with no
+  handoff. A run given one records no Playwright trace, because the trace would carry those
+  cookies into the bundle.
+- **New: a script file beside the scenario.** `demos/x.demo.ts` picks up `demos/x.script.json`
+  (`schema: "plaintake.script/v1"`) when it exists. Per step id it can replace the spoken line
+  (`say`, where `[pause]` splits as usual) and the hold (`holdMs`, still a minimum), and its
+  `pronounce` map is merged over the scenario's `pronunciations`. The file is copied into the
+  bundle as `scenario/script.json` and hashed into the manifest. `validate` checks it: bad JSON,
+  an unknown key or an out-of-range value is exit 2. An override naming a step that never ran is
+  reported in `logs/recorder.log` and in the run result's new `script` field (`path`, `applied`,
+  `unused`), not refused. A scenario with no script file records exactly as before.
+- `validate --json` now lists a terminal scenario's `terminal.env` and `terminal.secrets` names
+  (names only, never values).
+
 ## 1.30.0
 
 **Hook emoji are drawn in colour.** A scenario's `hook:` is now drawn as a picture: PlainTake lays
