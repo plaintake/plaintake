@@ -4,6 +4,20 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.32.0
+
+**Catch a missing target before you record.**
+
+- `plaintake check` now reports `target.unmeasured` and `target.stale`, the same notes `run`
+  gives, so a step whose target its own `run` creates (filmed as two silent, frozen seconds) is
+  caught before a recording with narration. The scenario guide and the skill say why a target
+  must exist when its step begins.
+- `plaintake check --storage-state <file>` starts the browser signed in, as `run` does, so a
+  product behind a login can be checked before it is recorded.
+- Fixed: a frame's `offsetMs` in `raw/frames.ndjson` no longer steps backwards when Chromium's
+  wall-clock frame timestamp does (measured 6 ms under load); the raw value stays in
+  `timestampMs`.
+
 ## 1.31.0
 
 **Record signed in, and edit narration without touching the scenario.**

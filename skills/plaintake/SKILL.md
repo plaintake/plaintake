@@ -180,6 +180,11 @@ precedence; a source checkout needs it installed in your project.
    `terminal.secrets` and let the program read it from the environment; `term.type`, `run`
    and `press` refuse a declared value (exit 2). `secrets` masks the terminal only — a web
    actor's pixels need `demo.mask`.
+12. **A step's `target` must exist when the step begins.** PlainTake measures it before the
+   step and its narration start, for up to 2s: a target the step's own `run` creates films
+   those 2s silent and frozen, then has no cursor or camera. `run` and `check` report it as
+   `target.unmeasured`. Draw overlays in `warmup` or an earlier step; `plaintake check` catches
+   this without narration or a render.
 
 ## Deeper reference
 

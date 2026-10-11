@@ -163,6 +163,12 @@ sign-in would never reach the web actor. `uiScale` other than 1 is refused as we
 - **Set `holdMs`.** Narration is timed at roughly 20 characters/second with a 1200ms minimum,
   so a step that finishes in 40ms still needs its caption on screen for over a second. Without
   holds the video becomes a frozen frame with captions scrolling over it.
+- **A step's `target` must already be on the page when the step begins.** PlainTake measures it
+  before the step starts and before its narration does, giving up after 2s. A target the step's
+  own `run` creates (an overlay, a panel, the next page) costs those 2s as a silent, frozen
+  stretch, then goes unmeasured: no cursor point and no camera shot. Both `run` and `check`
+  report it as `target.unmeasured`. Draw overlays in `warmup` or an earlier step, and navigate
+  between steps, not inside a targeted step's `run`.
 - **Masks take a CSS selector, not a `Locator`**, so they can be registered before the element
   exists — that is what makes "masked before the secret is ever visible" true.
 - **No `Date.now()`, no `Math.random()`, no external network.** A scenario should be
