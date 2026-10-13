@@ -62,6 +62,8 @@ export default defineDemo({
 | `reducedMotion` | `'reduce'` | yes | The only supported value — recordings must not depend on CSS motion. |
 | `allowedConsoleErrors` | string array | no, defaults to `[]` | Exact console error strings this scenario tolerates. Anything else fails the run. |
 | `terminal` | object | no | Record a live terminal instead of (or beside) a web app. See [Recording a terminal](#recording-a-terminal). Fields: `shell` (`'bash' \| 'zsh' \| 'sh'`, default `'bash'`), `command` (argv array, omit for an interactive shell), `cols` (40–200, default 120), `rows` (12–60, default 34), `cwd`, `env` (names copied from your environment), `secrets` (names, a subset of `env`, masked by value), `browser` (`true` adds a web actor; see below), `label` and `transition` (`'cut' \| 'card'`; both need `browser: true`). `uiScale` must be 1 (exit 2 otherwise), and `preflight`/`warmup` are refused. |
+| `desktop` | object | no | Record macOS app windows. See [Recording a macOS app](#recording-a-macos-app): one app is `app`, several are `apps` ([Several Mac apps in one video](#several-mac-apps-in-one-video)). |
+| `sites` | kebab-case string array | no | The websites, by id, that the tool running the scenario (PlainTake Studio) should point `--base-url` at (the first) and sign in to (all of them). PlainTake only checks and reports it (`validate`). |
 | `handoff` | `'none' \| 'preflight' \| 'session'` | no, defaults to `'none'` | See [Handing the browser to a person](#handing-the-browser-to-a-person). |
 | `handoffTimeoutMs` | integer, 5000–300000 | no, defaults to `120000` | How long a handoff waits for a person before giving up. 300000 (5 minutes) is a hard ceiling — past that a wait is indistinguishable from a hang. |
 | `intro` | object | no | See [The opening card](#the-opening-card). |
@@ -91,7 +93,7 @@ with `demo.actor`.
 
 | Method | Signature | Purpose |
 |---|---|---|
-| `chapter` | `(title: string) => Promise<void>` | Marks a chapter boundary on the timeline. Holds an establishing beat before the next step starts. The MP4 chapter markers derived from the events are free on every tier. |
+| `chapter` | `(title: string) => Promise<void>` | Marks a chapter boundary on the timeline. Holds an establishing beat before the next step starts (not on a desktop scenario: a Mac window doesn't repaint while it waits, so the beat would only film a silent, still pause). The MP4 chapter markers derived from the events are free on every tier. |
 | `step` | `({id, title, subtitle?, target?, action?, highlight?, holdMs?, run}) => Promise<void>` | The unit of narrated action. `run` performs it; `subtitle` is both the on-screen caption and the spoken line — you may write a `[pause]` in it to break a long line (see [Narration breaks](#narration-breaks)); `target` (a `Locator`) is recorded for the cursor/camera/highlight to read, never used to act; `action` (`'click' \| 'type' \| 'point'`) tells the cursor what to draw; `highlight` (`boolean \| { label? }`) dims everything but `target` — see [Highlighting](#highlighting). |
 | `assert` | `({id, title, run}) => Promise<void>` | A checked expectation. A rejection fails the run; it does not stop the recording. |
 | `mask` | `({id, selector, reason?}) => Promise<void>` | Hides a CSS selector's contents in every frame it could appear in, from the moment it is registered — register it *before* the element exists so nothing is ever visible. A selector, not a `Locator`, is what makes that possible. |
@@ -156,6 +158,140 @@ jump rather than glide. The Playwright trace covers only the terminal, and `term
 never masks web pixels. `preflight` and `warmup` are refused (exit 2) for a terminal scenario,
 `browser` or not: with `browser` they would run in the terminal's page and context, so their
 sign-in would never reach the web actor. `uiScale` other than 1 is refused as well.
+
+## Recording a macOS app
+
+A scenario with a `desktop` block records one macOS app's window: a helper resizes it to fill
+the frame, streams it into a page PlainTake serves itself, and Chromium films that page, so
+captions, narration, cursor, camera, highlights and chapters work unchanged. It takes neither
+`--base-url` nor `--fixture` (exit 2), runs on macOS 13 or later only, and `run()` is handed
+`app`:
+
+```ts
+desktop: { app: 'com.microsoft.Excel' }            // a bundle id, or a .app path relative to this file
+// optional: args: ['--safe'], document: 'book.xlsx', launch: 'fresh' | 'attach'
+```
+
+With no `launch`, PlainTake uses the app if it is open and starts it if not (and quits it at the end
+only if it started it). `launch: 'fresh'` refuses an app that is already open rather than quit it;
+`launch: 'attach'` refuses one that is not.
+
+| Verb | Purpose |
+|---|---|
+| `app.click({ role, name }, meta?)` | Presses the element (AXPress when it offers it, else a pointer click at its centre). |
+| `app.doubleClick({ role, name }, meta?)` | A pointer double-click at the element. |
+| `app.type(text, meta?)` | Types into whatever has keyboard focus, at a fixed pace. |
+| `app.press(keys, meta?)` | Key chords, space-separated: `'Enter'`, `'Cmd+1'`, `'Cmd+a Delete'`. A single character is case-sensitive, as in Playwright: `'Cmd+a'` selects all, `'Cmd+A'` is Cmd+Shift+A. A character names the key that types it on the Mac's current keyboard layout, so `'Cmd+z'` is undo on QWERTY, AZERTY and Dvorak alike. Named keys (any case): `Enter`/`Return`, `Tab`, `Space`, `Backspace`, `Delete` (forward delete), `Escape`/`Esc`, `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` (or `Left`/`Right`/`Up`/`Down`), `Home`, `End`, `PageUp`, `PageDown`, `F1`–`F12`; modifiers `Cmd`/`Command`/`Meta`, `Ctrl`/`Control`, `Alt`/`Opt`/`Option`, `Shift`. Any other key is refused before its step starts (exit 2). |
+| `app.menu('Format > Cells…', meta?)` | Opens each menu from the menu bar, then presses the last item inside the step, so the video shows the menu open. The menu bar itself is above the frame; the drop-down's top edge rides the frame's top edge. |
+| `app.waitForText(pattern, {timeoutMs?, id?, title?})` / `app.waitForWindow(title, …)` | Waits on the window's text (through Accessibility) or on a window title; `demo.waitFor`'s bounds, exit 4 on timeout. |
+| `app.locate({ role, name })` | A locator over the element's rect right now, to use as a step's `target`. Not found is exit 4. |
+| `app.text()` | The window's visible text, one element per line. |
+| `app.assert({id, title, run})` | `demo.assert` against the app. |
+| `app.mask({ id, target: { role, name }, reason? })` | Hides the element for the rest of the video (see below). |
+
+`role` is an Accessibility role (`'AXButton'`, `'AXCheckBox'`) or a short form: `button`,
+`checkbox`, `textfield`, `text`, `menuitem`, `menubutton`, `popup`, `radio`, `combobox`, `link`.
+`name` matches the element's title, then its description (Office splits names across the two),
+then a static text's words. Step ids are `app.1`, `app.2`, … unless you give one.
+Electron apps (Slack, VS Code, PlainTake Studio) work too: the helper asks them to expose their
+page to Accessibility, so a button is named by its text, as in `app.click({ role: 'button', name:
+'Board' })`.
+
+Three things to know before you record:
+
+- **The Mac is in use while it records.** The app is brought to the front, the window is resized
+  to 1920×1080 points (960×540 at `uiScale: 2`, which a 13"–15" MacBook display needs: a
+  display the window does not fit is refused with the scales that would), and clicks and keys are
+  real input. Do not touch the keyboard or mouse until the run ends.
+- **Some controls ignore synthetic input.** Office's ribbon drop-down buttons do; drive those
+  through the menu bar (`app.menu`) or a shortcut (`app.press`) instead. Check boxes, buttons,
+  menus and dialogs behave.
+- **The first run asks for two permissions** — Screen Recording and Accessibility — for the app
+  that launched `plaintake` (your terminal, or PlainTake Studio), in System Settings → Privacy &
+  Security. `plaintake doctor` reports both as a state.
+
+**Masks.** `app.mask` paints a solid block over the element inside the helper, before a frame
+is encoded, so its pixels are in no frame, trace or bundle; `demo.mask` (a CSS selector) is refused
+on a desktop scenario. The element must be on screen when you call it, in the app's main window (an
+element in a separate panel or popover is not found). The block follows the element as it moves,
+with a small margin; something that moves very fast — a quick scroll, a sheet sliding in — can show
+at its edge for a frame, so watch the video back before publishing. If the element closes nothing is painted, and when it comes back it is found again before
+the frames that follow any `app` verb, or within a quarter of a second otherwise. When the helper
+cannot tell where a masked element is, it sends no frame at all — the video holds the last masked
+one, then catches up as soon as it knows — and if that lasts too long (2 seconds with nothing left to
+try, 10 in all) the run fails rather than leave a frozen stretch unexplained.
+
+**Handing the app to a person.** `handoff: 'session'` works as it does for a browser, except the
+person works in the app's own window (PlainTake brings it to the front; no browser window opens),
+and the prompt names the app. The video is rolling, so mask anything private with `app.mask`
+before the handoff; a handoff's own `mask` option is a CSS selector and is refused here.
+
+Targets are authored against one `uiScale`: a responsive app re-lays out its controls at 960
+points wide. `preflight`, `warmup` and `handoff: 'preflight'` are refused on a desktop scenario for
+now (exit 2).
+Desktop recordings are not part of `make reproduce`: the app's pixels depend on the machine, but
+two renders of one bundle are still byte-identical.
+
+### A Mac app and a browser together
+
+`desktop: { ..., browser: true }` works as [`terminal.browser`](#terminal-and-browser-together)
+does: the app becomes the default actor `app` (labelled `desktop.label`, default the `.app` name, or
+the bundle id, so give a bundle-id app a `label`), and you name a web actor with
+`demo.actor('web')`. Record with exactly one of `--base-url` or `--fixture`; `baseURL` in `run()` is
+the web target. `app.actor` is the handle to turn back to:
+
+```ts
+desktop: { app: 'com.apple.TextEdit', label: 'TextEdit', browser: true },
+
+async run({ demo, app, baseURL }) {
+  await app.type('Plans for Friday', { title: 'Type', subtitle: 'Write it down.' });
+  const web = await demo.actor('web', { label: 'Web' });
+  await web.page.goto(baseURL);                     // preloaded, so the cut lands on a drawn page
+  await demo.turn(web);                             // a hard cut, unless transition: 'card'
+  await web.click(web.page.getByRole('link', { name: 'Notes' }), { title: 'Open notes' });
+  await demo.turn(app.actor, { card: { lines: ['Back to TextEdit'] } });
+}
+```
+
+The turn calls are the terminal's (`card`, `card: false`, `transition: 'card'`). `app` verbs are
+refused (exit 2) while the web actor holds the turn. `--storage-state` reaches the web actor, so it
+starts signed in. The web actor's page is not traced, and the actor badge draws over the window's
+top-left corner. `demo.mask` stays refused: hide a web secret with the web actor's own
+`web.mask({ id, selector })`, and an app one with `app.mask`. A session handoff is refused with
+`browser` (exit 2), since Chromium stays headless on a desktop run and a person could not act in
+the web half.
+
+### Several Mac apps in one video
+
+`desktop.apps` records two or more apps, each in its own window, taking turns like actors. Every
+app has an `id` (its actor and the prefix of its step ids, `excel.1`), a `label` for its badge and
+cards, and its own `args`, `document` and `launch`; those four are refused at the top level beside
+`apps`. The first app is the default actor and is also handed to `run()` as `app`; `apps` holds
+every app by id:
+
+```ts
+desktop: {
+  apps: [
+    { id: 'excel', app: 'com.microsoft.Excel', label: 'Excel', document: 'sales.xlsx' },
+    { id: 'word', app: 'com.microsoft.Word', label: 'Word' },
+  ],
+},
+
+async run({ demo, app, apps }) {
+  await app.press('Cmd+c', { title: 'Copy', subtitle: 'Copy the totals.' });
+  await demo.turn(apps.word.actor);                 // a hard cut, unless transition: 'card'
+  await apps.word.press('Cmd+v', { title: 'Paste', subtitle: 'Paste them into the letter.' });
+  await demo.turn(app.actor, { card: { lines: ['Back to Excel'] } });
+}
+```
+
+Each app is started in order before the video starts (and quit at the end only if PlainTake
+started it), and a turn brings that app's window to the front before its first step, so its
+clicks and keys reach it. An app's verbs are refused (exit 2) while another actor holds the turn.
+Turns between apps are hard cuts unless `transition: 'card'`. Add `browser: true` to take turns
+with a web actor as well, as above; without it, `demo.actor` accepts only the apps' ids. Every
+window is resized to the same frame and filmed on its own, so the Mac's display must fit one
+window, not all of them.
 
 ## Rules that matter in practice
 

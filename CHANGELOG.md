@@ -4,6 +4,56 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## Unreleased
+
+**Mac app recordings that fail before the take, not after it.**
+
+- **A closed window is no longer filmed black.** When a scenario's last step closes the app's
+  window (File > Close, Don't Save), the video ends on the window's last frame instead of
+  black, and the capture ends where the window went.
+- **`app.press` accepts `Left`, `Right`, `Up`, `Down` and `Esc`** as well as the Playwright
+  names. Any other unknown key or modifier is refused before its step starts (exit 2), not
+  half-way through a take. The scenario guide lists the named keys.
+- **`app.locate`, `click` and `doubleClick` look for their element for up to 2 s**, so an
+  element a key press has just drawn, such as Excel's Flash Fill status, is found.
+- **A chapter holds no establishing beat on a desktop scenario.** A Mac window doesn't repaint
+  while nothing happens, so the 1.3 s beat only ever filmed a silent, still pause.
+- **An intro or outro card line too long for the frame is refused when `run` starts** (exit 2),
+  not after the recording. Turn cards are still checked when the plan is made.
+- Fixed: a camera that never moves the window (every shot centred) made `--reframe follow` and
+  `--for` renders fail with ffmpeg's "No commands were specified".
+- PlainTake Studio: `write_scenario` reports an `app.press` key the helper would refuse, and an
+  end-card line too long for the product's aspect. A Mac app take whose picture is black for
+  1.1 s or more fails its checks ("black picture"), as a whole-black take used to pass.
+
+## 1.33.0
+
+**Record Mac apps, and start the video where something happens.**
+
+- **New: record a macOS app** (`desktop` in the scenario, macOS 13 or later). PlainTake sizes the
+  app's window to the frame, films it, and drives it through Accessibility with
+  `app.click`, `doubleClick`, `type`, `press` and `menu`. `app.mask` paints over an element
+  before the frame leaves the helper, so masked pixels never reach the video or the bundle. The
+  Mac is busy while it records: the app is in front and takes the mouse and keyboard. It needs
+  Screen Recording and Accessibility for the app that runs `plaintake`, and `doctor` says which
+  one is missing. See "Recording a macOS app" in the scenario guide.
+- **New: a Mac app and a browser in one video** (`desktop.browser: true`), taking turns like
+  `terminal.browser`: a hard cut by default, or a card with `desktop.transition: 'card'`.
+  `--storage-state` signs the web half in.
+- **New: several Mac apps in one video** (`desktop.apps`), e.g. copy from Excel and paste into
+  Word. Each app is an actor, and a turn to it brings its window to the front first.
+- **New: `sites`**, a list of website ids for a tool that runs the scenario (PlainTake Studio) to
+  choose the base URL and the sign-ins from. PlainTake only checks it and reports it in
+  `validate`.
+- Electron apps can be recorded too: their page is visible to Accessibility, and a window that
+  never repaints still shows its picture.
+- **The still, silent opening is cut.** A recording used to open on up to 2.4 s of nothing
+  happening: an app starting, a page loading, a blank page under the first chapter. PlainTake now
+  starts the video half a second before the first thing happens. `run --lead-in keep` turns it
+  off. Runs with a session handoff, and recordings of more than one actor, are not trimmed yet.
+  A bundle recorded with this version can be re-rendered by an older one, but not re-cut with
+  `render --aspect`, `--hook` or `--rounded` there.
+
 ## 1.32.0
 
 **Catch a missing target before you record.**

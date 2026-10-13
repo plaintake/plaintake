@@ -185,6 +185,9 @@ precedence; a source checkout needs it installed in your project.
    those 2s silent and frozen, then has no cursor or camera. `run` and `check` report it as
    `target.unmeasured`. Draw overlays in `warmup` or an earlier step; `plaintake check` catches
    this without narration or a render.
+13. **A slow start costs nothing; a slow step does.** `run` cuts the still, silent opening before
+   the first line, cursor or step to half a second, so load the page or wait for the app in a
+   `demo.waitFor` before the first step, never inside a narrated one.
 
 ## Deeper reference
 

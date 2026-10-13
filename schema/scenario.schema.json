@@ -257,6 +257,96 @@
         }
       }
     },
+    "desktop": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "minLength": 1
+        },
+        "apps": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              },
+              "app": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "document": {
+                "type": "string",
+                "minLength": 1
+              },
+              "launch": {
+                "type": "string",
+                "enum": [
+                  "fresh",
+                  "attach"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "app"
+            ]
+          }
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "document": {
+          "type": "string",
+          "minLength": 1
+        },
+        "launch": {
+          "type": "string",
+          "enum": [
+            "fresh",
+            "attach"
+          ]
+        },
+        "browser": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition": {
+          "type": "string",
+          "enum": [
+            "cut",
+            "card"
+          ]
+        }
+      }
+    },
+    "sites": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    },
     "pronunciations": {
       "type": "object",
       "propertyNames": {

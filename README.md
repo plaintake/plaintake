@@ -94,7 +94,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.32.0
+VERSION=1.33.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -151,7 +151,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.32.0
+VERSION=1.33.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -168,7 +168,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.32.0"
+$VERSION = "1.33.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -195,8 +195,9 @@ docker run --rm -v "${PWD}:/work" `
 PlainTake Studio is a desktop app around the same engine, for people who would rather not use a
 terminal: guided setup, a folder per product, a board to review ideas and finished videos, and a
 calendar that schedules posts through your Buffer account. The AI is your own Claude: Claude
-Desktop or Claude Code connects to Studio over MCP to suggest ideas and write scenarios, and
-Studio never calls a model itself. It carries its own copy of PlainTake, so you do not need the
+Code connects to Studio over MCP and runs in a panel inside the app to suggest ideas and write
+scenarios, with Claude Desktop as the fallback if you don't use Claude Code, and Studio never
+calls a model itself. It carries its own copy of PlainTake, so you do not need the
 CLI installed as well.
 
 - **Macs with Apple silicon only** (M1 or later, macOS 13+).
@@ -222,7 +223,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.32.0
+    version: 1.33.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -258,7 +259,7 @@ plaintake run      <scenario.ts> --output <dir> [--base-url <url> | --fixture]
                                   [--subtitles soft|hard] [--cursor on|off]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
                                   [--reframe letterbox|follow|social|inset]
-                                  [--for tiktok|shorts]
+                                  [--for tiktok|shorts] [--lead-in trim|keep]
                                   [--speech off|on|file] [--voice <id>]
                                   [--config <path>] [--no-baseline | --update-baseline]
 plaintake check    <scenario.ts> [--base-url <url> | --fixture] [--output <dir>] [--no-baseline | --update-baseline]
@@ -285,7 +286,7 @@ plaintake --version
 | Command | What it does |
 |---|---|
 | `validate` | Loads a scenario and checks it, without opening a browser |
-| `run` | Records, times the captions, renders, hashes, and writes a recording |
+| `run` | Records, times the captions, renders, hashes, and writes a recording. The still, silent opening before the first thing happens (an app starting, a page loading, a chapter's opening beat) is cut to half a second; `--lead-in keep` keeps it |
 | `check` | Records and asserts without rendering — no FFmpeg needed, fast enough for every pull request. `--base-url` takes any URL, a production one included, so the same command gates a deploy: see [`docs/patterns.md`](docs/patterns.md), *Post-deploy smoke tests* |
 | `render` | Re-renders from a recording's frozen plan. No browser, no network, no clock |
 | `verify` | Re-hashes every file against the manifest |
