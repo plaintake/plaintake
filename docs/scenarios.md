@@ -63,7 +63,7 @@ export default defineDemo({
 | `allowedConsoleErrors` | string array | no, defaults to `[]` | Exact console error strings this scenario tolerates. Anything else fails the run. |
 | `terminal` | object | no | Record a live terminal instead of (or beside) a web app. See [Recording a terminal](#recording-a-terminal). Fields: `shell` (`'bash' \| 'zsh' \| 'sh'`, default `'bash'`), `command` (argv array, omit for an interactive shell), `cols` (40–200, default 120), `rows` (12–60, default 34), `cwd`, `env` (names copied from your environment), `secrets` (names, a subset of `env`, masked by value), `browser` (`true` adds a web actor; see below), `label` and `transition` (`'cut' \| 'card'`; both need `browser: true`). `uiScale` must be 1 (exit 2 otherwise), and `preflight`/`warmup` are refused. |
 | `desktop` | object | no | Record macOS app windows. See [Recording a macOS app](#recording-a-macos-app): one app is `app`, several are `apps` ([Several Mac apps in one video](#several-mac-apps-in-one-video)). |
-| `sites` | kebab-case string array | no | The websites, by id, that the tool running the scenario (PlainTake Studio) should point `--base-url` at (the first) and sign in to (all of them). PlainTake only checks and reports it (`validate`). |
+| `sites` | kebab-case string array | no | The websites, by id, that a tool that runs the scenario should point `--base-url` at (the first) and sign in to (all of them). PlainTake only checks and reports it (`validate`). |
 | `handoff` | `'none' \| 'preflight' \| 'session'` | no, defaults to `'none'` | See [Handing the browser to a person](#handing-the-browser-to-a-person). |
 | `handoffTimeoutMs` | integer, 5000–300000 | no, defaults to `120000` | How long a handoff waits for a person before giving up. 300000 (5 minutes) is a hard ceiling — past that a wait is indistinguishable from a hang. |
 | `intro` | object | no | See [The opening card](#the-opening-card). |
@@ -100,6 +100,7 @@ with `demo.actor`.
 | `waitFor` | `({id, title, until, timeoutMs?}) => Promise<void>` | Waits on a condition that prompts nobody — a push notification, an emailed link, a background job. Needs no window and no terminal; works headless and in CI. |
 | `handoff` | `({id, title, detail?, until?, timeoutMs?, mask?}) => Promise<void>` | Hands the real browser window to a person. Requires `handoff` in the scenario's metadata; only available in `run()` when `handoff: 'session'`, and in `preflight()` always. See below. |
 | `pause` | `(ms: number) => Promise<void>` | An explicit, recorded pause. Prefer this over `page.waitForTimeout`: it races the run's abort signal and appears on the timeline. |
+| `note` | `(message: string) => void` | Says something the author should read about a run that still passes — a best-effort cleanup that failed, a fallback taken. Nothing reaches the video; the message becomes a `scenario.note` diagnostic in the run's or check's result. Never fails the run. |
 | `explain` | `({id, title, narration, scene, cues?, voice?}) => Promise<void>` | A full-frame, narrated motion-graphics cut-away in the middle of the recording. See [Explaining while demoing](#explaining-while-demoing). |
 
 Pass `{ timeout: 0 }` to whatever Playwright call sits inside a `waitFor`'s or `handoff`'s
@@ -178,24 +179,58 @@ only if it started it). `launch: 'fresh'` refuses an app that is already open ra
 
 | Verb | Purpose |
 |---|---|
-| `app.click({ role, name }, meta?)` | Presses the element (AXPress when it offers it, else a pointer click at its centre). |
-| `app.doubleClick({ role, name }, meta?)` | A pointer double-click at the element. |
+| `app.click({ role, name } \| { x, y }, meta?)` | Presses the element (AXPress when it offers it, else a pointer click at its centre), or clicks the pointer at a window point, for what Accessibility does not expose (a spreadsheet's cells, the arrow beside a cell). A point outside the window is refused before the step starts (exit 2). |
+| `app.doubleClick({ role, name } \| { x, y }, meta?)` | A pointer double-click at the element or the point. |
+| `app.choose({ role, name }, item, meta?)` | Picks `item` from a pop-up button or combo box: the menu opens before the step starts, so the video shows it open and the cursor goes to the item, which is pressed inside the step. A control or item not found is exit 4. |
 | `app.type(text, meta?)` | Types into whatever has keyboard focus, at a fixed pace. |
 | `app.press(keys, meta?)` | Key chords, space-separated: `'Enter'`, `'Cmd+1'`, `'Cmd+a Delete'`. A single character is case-sensitive, as in Playwright: `'Cmd+a'` selects all, `'Cmd+A'` is Cmd+Shift+A. A character names the key that types it on the Mac's current keyboard layout, so `'Cmd+z'` is undo on QWERTY, AZERTY and Dvorak alike. Named keys (any case): `Enter`/`Return`, `Tab`, `Space`, `Backspace`, `Delete` (forward delete), `Escape`/`Esc`, `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` (or `Left`/`Right`/`Up`/`Down`), `Home`, `End`, `PageUp`, `PageDown`, `F1`–`F12`; modifiers `Cmd`/`Command`/`Meta`, `Ctrl`/`Control`, `Alt`/`Opt`/`Option`, `Shift`. Any other key is refused before its step starts (exit 2). |
 | `app.menu('Format > Cells…', meta?)` | Opens each menu from the menu bar, then presses the last item inside the step, so the video shows the menu open. The menu bar itself is above the frame; the drop-down's top edge rides the frame's top edge. |
-| `app.waitForText(pattern, {timeoutMs?, id?, title?})` / `app.waitForWindow(title, …)` | Waits on the window's text (through Accessibility) or on a window title; `demo.waitFor`'s bounds, exit 4 on timeout. |
+| `app.drag(from, to, opts?)` | Presses on `from`, moves the pointer to `to` and releases there: moving a text box, dropping a file on a folder, reordering a row. `from` is an element `{ role, name }` or a window point `{ x, y }`; `to` is an element (its centre), an offset `{ dx, dy }` from the grab point, or a window point `{ x, y }`. Window points are the window's own points, 1920×1080 at `uiScale` 1 (960×540 at 2), from its top-left. `opts` is a step's meta plus `grab: { x, y }` (where to press on an element, from its top-left; default its centre) and `durationMs` (200–3000, default 600). A drop outside the window, a bad `durationMs` or `grab`, or `grab` with a point `from` is refused before the step starts (exit 2); an element not found is exit 4. The rendered cursor presses, travels with the drag and ripples again on the drop. |
+| `app.waitForText(pattern, {timeoutMs?, id?, title?})` / `app.waitForWindow(title, …)` | Waits on the text of the app's windows, dialogs and alerts included (through Accessibility), or on a window title; `demo.waitFor`'s bounds, exit 4 on timeout. |
 | `app.locate({ role, name })` | A locator over the element's rect right now, to use as a step's `target`. Not found is exit 4. |
-| `app.text()` | The window's visible text, one element per line. |
+| `app.text()` | The visible text of the app's windows, front to back, one element per line. |
 | `app.assert({id, title, run})` | `demo.assert` against the app. |
 | `app.mask({ id, target: { role, name }, reason? })` | Hides the element for the rest of the video (see below). |
 
 `role` is an Accessibility role (`'AXButton'`, `'AXCheckBox'`) or a short form: `button`,
 `checkbox`, `textfield`, `text`, `menuitem`, `menubutton`, `popup`, `radio`, `combobox`, `link`.
 `name` matches the element's title, then its description (Office splits names across the two),
-then a static text's words. Step ids are `app.1`, `app.2`, … unless you give one.
-Electron apps (Slack, VS Code, PlainTake Studio) work too: the helper asks them to expose their
+then a static text's words, then the label beside it that names it (Excel's dialog controls are
+named only that way: the pop-up under "Allow:" is `{ role: 'popup', name: 'Allow:' }`). Step ids are `app.1`, `app.2`, … unless you give one.
+Electron apps (Slack, VS Code) work too: the helper asks them to expose their
 page to Accessibility, so a button is named by its text, as in `app.click({ role: 'button', name:
 'Board' })`.
+
+**Dialogs, alerts and pop-ups.** An element is looked for in the app's windows front to back, so
+a dialog, an alert or a panel open over the main window answers first, and a sheet is part of its
+window: `app.click({ role: 'button', name: 'OK' })` presses the dialog's OK. A window the app opens
+outside the frame (Excel puts some alerts at the screen's right edge) is moved to the middle of the
+main window as it appears, so the video shows it; `logs/recorder.log` says where it went. Window points
+are measured from the main window's top-left, dialogs included. A pop-up button's choice is one
+step:
+
+```ts
+await app.menu('Data > Validation...', { title: 'Data Validation', holdMs: 1500 });
+await app.choose({ role: 'popup', name: 'Allow:' }, 'List', { subtitle: 'Under Allow, pick List.' });
+await app.click({ role: 'button', name: 'OK' }, { subtitle: 'Then OK.' });
+await app.waitForText("doesn't match", { timeoutMs: 5000 });
+```
+
+A window drawn by another process (a sandboxed app's Open panel) can be neither driven nor filmed.
+
+**Dragging something drawn on a canvas.** Some apps draw an object with no Accessibility element of
+its own: Preview's text and shape annotations are drawn on the document and invisible to `app.locate`.
+Drag those from a window point. A new Preview text box appears at the centre of the document, so on a
+document that fills the window:
+
+```ts
+await app.menu('Tools > Annotate > Text', { title: 'Add a text box', holdMs: 1000 });
+await app.drag({ x: 960, y: 595 }, { dx: 300, dy: 200 }, { title: 'Move it', subtitle: 'Drag it onto the signature line.' });
+```
+
+Give a newly made object a moment before dragging it (the `holdMs` above): Preview ignored a drag that
+began a few milliseconds after the box appeared, and took the same drag a second later. Rehearse to
+find the point, since it depends on the document's size in the window.
 
 Three things to know before you record:
 
@@ -207,13 +242,25 @@ Three things to know before you record:
   through the menu bar (`app.menu`) or a shortcut (`app.press`) instead. Check boxes, buttons,
   menus and dialogs behave.
 - **The first run asks for two permissions** — Screen Recording and Accessibility — for the app
-  that launched `plaintake` (your terminal, or PlainTake Studio), in System Settings → Privacy &
+  that launched `plaintake` (your terminal, or the app that runs it), in System Settings → Privacy &
   Security. `plaintake doctor` reports both as a state.
+
+**A window that keeps its own size.** Some windows cannot be resized — Pages' first-launch welcome window is
+910×609 points whatever is asked of it. Such a window is filmed in the middle of the frame at its
+own size, unstretched, with black around it, and with `--camera zoom` the camera frames that window
+whole while it is up (up to 2×, so it fills a vertical cut), instead of resting on the full frame.
+It must fit the frame at your `uiScale` (the chooser fits at `1.5`, 1280×720 points, but not at
+`2`); a larger one is refused before the run starts (exit 2), naming a smaller scale to try. When the
+filmed window closes and the app opens another in its place (Create in the chooser opens the new
+document), that window is filmed instead: sized to the frame like the first, with one line in
+`logs/recorder.log`, and the camera goes back to the full frame. Window points (`app.click({ x, y })`,
+`app.drag`) are always the frame's, from its top-left, so a point in a centred chooser is its
+position in the frame, not in the chooser.
 
 **Masks.** `app.mask` paints a solid block over the element inside the helper, before a frame
 is encoded, so its pixels are in no frame, trace or bundle; `demo.mask` (a CSS selector) is refused
 on a desktop scenario. The element must be on screen when you call it, in the app's main window (an
-element in a separate panel or popover is not found). The block follows the element as it moves,
+element in a separate panel, popover or dialog is not found, unlike every other verb's). The block follows the element as it moves,
 with a small margin; something that moves very fast — a quick scroll, a sheet sliding in — can show
 at its edge for a frame, so watch the video back before publishing. If the element closes nothing is painted, and when it comes back it is found again before
 the frames that follow any `app` verb, or within a quarter of a second otherwise. When the helper
@@ -353,6 +400,18 @@ says nothing is framed exactly as before this existed.
 - **`easeMs`** (133–2000, default 800) — how long a camera move takes.
 - **`minDwellMs`** (0–5000, default 0) — settled time guaranteed on screen for a targeted step,
   on top of the ease.
+
+What moves the camera, beyond each targeted step:
+
+- **A step with no target holds the frame**, but the move to the *next* target starts early: up
+  to `easeMs` plus about 500ms before that step begins, so it can land in the tail of a hold. To
+  linger on the current view, keep the step after the hold near it.
+- **`demo.chapter()` zooms out to the whole frame.** On a vertical cut (`--reframe follow`,
+  `--for tiktok`), where the whole width does not fit, it zooms out in place over the content
+  the camera was on rather than sliding to the middle of the screen.
+- **An `app.drag` from a bare `{ x, y }` point** (a click off a text box, a grab on a canvas)
+  only moves the camera when the point is not already well inside what is on screen. A point
+  has no element to frame, so zooming in on one would just centre on empty space.
 
 ## Highlighting
 

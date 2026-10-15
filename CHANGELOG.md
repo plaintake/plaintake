@@ -4,10 +4,68 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
-## Unreleased
+## 1.35.0
 
-**Mac app recordings that fail before the take, not after it.**
+**Mac app recordings no longer freeze or go black partway through.** The recording page showed the
+app through a streaming image, which Chromium could stop repainting while frames kept arriving: the
+video then held one frame, often black, for the rest of the take, and the run failed as "the app's
+window wasn't filmed". The page now draws each frame itself, and repaints every time.
 
+**Mac app windows that can't be resized are filmed, not refused.** A window that keeps its own
+size, like Pages' 910×609 first-launch welcome window, used to stop the run ("laid its window out at 910x609
+points"). It is now filmed in the middle of the frame at its own size, unstretched, and with
+`--camera zoom` the camera frames that window whole while it is up, so a vertical cut is not mostly
+black. When it closes and the app opens another window in its place (a template chooser's Create
+opening the new document), PlainTake films that one instead, sized to the frame. A window larger than the frame at
+the chosen `uiScale` is still refused, naming a smaller scale to try.
+
+**A one-screen website.** [plaintake.github.io](https://plaintake.github.io) is now a single
+page with three points — AI-written tours of web apps, terminals and Mac apps that re-record
+without AI; free to use, with Pro for no credit and camera zoom; more videos on YouTube,
+Instagram and TikTok. The landing video and the scenarios that recorded it (`docs/site-demo/`,
+`docs/quickstart-demo/`) are gone from the release channel.
+
+**New: `demo.note(message)`** says something about a run that still passes, such as a
+best-effort cleanup that failed. The message comes back as a `scenario.note` diagnostic in
+`run`'s and `check`'s results; nothing reaches the video.
+
+
+**Mac app dialogs, alerts and pop-ups, driven and filmed like the rest of the app.**
+
+- **Dialogs, alerts and sheets are reachable.** `app.click`, `doubleClick`, `locate`,
+  `waitForText` and `text` look in the app's windows front to back, so a dialog or alert open
+  over the main window (Excel's Data Validation, its "doesn't match" alert) answers first, as it
+  would to a person. No more System Events workarounds.
+- **A dialog opened outside the frame is moved into it.** Excel opens some alerts at the
+  screen's right edge, outside the recorded window; PlainTake now moves each such window to the
+  middle of the main window as it appears, and the recorder log says where.
+- **New: `app.choose(popup, item)`** picks from a pop-up button or combo box in one step, with
+  its menu shown open and the cursor on the item.
+- **New: `app.click({ x, y })` and `app.doubleClick({ x, y })`** click the real pointer at a
+  window point, for what Accessibility does not expose, such as a spreadsheet's cells. A point
+  outside the window is refused before the step starts (exit 2).
+- Fixed: the helper's quarter-second check, which puts a moved window back and notices the app
+  quitting, never ran after start-up.
+- `app.mask` still finds its element in the main window only.
+
+**Vertical cuts (`--for tiktok`, `--for shorts`, `--reframe follow`): a chapter zooms out in
+  place** over the content the camera was on, instead of sliding to the middle of the screen.
+  Only full-frame shots do this. A step aimed at something wider than the cut, such as a wide
+  dialog or a whole page, is still centred on its own target, so it isn't cut off on one side.
+- **A drag from a bare point in a Mac app** only moves the camera when the point isn't already
+  well inside what is on screen.
+
+
+## 1.34.0
+
+**Drag in Mac apps, and Mac app recordings that fail before the take, not after it.**
+
+- **New: `app.drag(from, to, opts?)`** presses on an element or a window point, moves the
+  pointer to another element, an offset or a window point, and releases there: moving a text
+  box, dropping a file on a folder, reordering a row. A drop outside the window or a bad option
+  is refused before the step starts (exit 2). With `--cursor on` the rendered cursor presses,
+  travels with the drag and ripples again on the drop. See "Recording a macOS app" in the
+  scenario guide.
 - **A closed window is no longer filmed black.** When a scenario's last step closes the app's
   window (File > Close, Don't Save), the video ends on the window's last frame instead of
   black, and the capture ends where the window went.
@@ -22,9 +80,6 @@ written afterwards.
   not after the recording. Turn cards are still checked when the plan is made.
 - Fixed: a camera that never moves the window (every shot centred) made `--reframe follow` and
   `--for` renders fail with ffmpeg's "No commands were specified".
-- PlainTake Studio: `write_scenario` reports an `app.press` key the helper would refuse, and an
-  end-card line too long for the product's aspect. A Mac app take whose picture is black for
-  1.1 s or more fails its checks ("black picture"), as a whole-black take used to pass.
 
 ## 1.33.0
 
@@ -42,7 +97,7 @@ written afterwards.
   `--storage-state` signs the web half in.
 - **New: several Mac apps in one video** (`desktop.apps`), e.g. copy from Excel and paste into
   Word. Each app is an actor, and a turn to it brings its window to the front first.
-- **New: `sites`**, a list of website ids for a tool that runs the scenario (PlainTake Studio) to
+- **New: `sites`**, a list of website ids for a tool that runs the scenario to
   choose the base URL and the sign-ins from. PlainTake only checks it and reports it in
   `validate`.
 - Electron apps can be recorded too: their page is visible to Accessibility, and a window that

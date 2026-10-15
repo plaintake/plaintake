@@ -44,12 +44,11 @@ a muted viewer would otherwise get nothing.
 ![PlainTake recording a release-approval demo: the cursor moves to each target and the camera zooms in to follow it](assets/demo-preview.gif)
 
 The full narrated video, and the free-tier stills and manifest this preview is drawn from, are
-in [`docs/samples/`](docs/samples/). The landing-page video was recorded by PlainTake from a
-scenario — the exact source, the command, and every flag it used are published in
-[`docs/site-demo/`](docs/site-demo/).
+in [`docs/samples/`](docs/samples/).
 
 More videos made with PlainTake are on
-[YouTube](https://www.youtube.com/@plainlabdev) and [TikTok](https://www.tiktok.com/@plainlab).
+[YouTube](https://www.youtube.com/@plainlabdev), [Instagram](https://www.instagram.com/plainlabdev/)
+and [TikTok](https://www.tiktok.com/@plainlab).
 
 ---
 
@@ -94,7 +93,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.33.0
+VERSION=1.35.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -151,7 +150,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.33.0
+VERSION=1.35.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -168,7 +167,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.33.0"
+$VERSION = "1.35.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -190,30 +189,6 @@ docker run --rm -v "${PWD}:/work" `
   directory writable first (`mkdir -p out && chmod 777 out` — `mkdir -p` first because `chmod`
   on a directory that doesn't exist yet just fails).
 
-### PlainTake Studio (beta, macOS)
-
-PlainTake Studio is a desktop app around the same engine, for people who would rather not use a
-terminal: guided setup, a folder per product, a board to review ideas and finished videos, and a
-calendar that schedules posts through your Buffer account. The AI is your own Claude: Claude
-Code connects to Studio over MCP and runs in a panel inside the app to suggest ideas and write
-scenarios, with Claude Desktop as the fallback if you don't use Claude Code, and Studio never
-calls a model itself. It carries its own copy of PlainTake, so you do not need the
-CLI installed as well.
-
-- **Macs with Apple silicon only** (M1 or later, macOS 13+).
-- **Download** `PlainTake-Studio-<version>-arm64.dmg` from the
-  [Studio releases](https://github.com/plaintake/plaintake/releases?q=studio) (the newest is at the top) and drag it
-  into Applications. Studio is not notarized yet, so the first launch needs **System Settings →
-  Privacy & Security → Open Anyway**, once.
-- **FFmpeg is still yours to install**, exactly as above (`brew install ffmpeg-full` and
-  `brew link --force --overwrite ffmpeg-full`).
-- **Updates** install themselves on restart; each one is checked against a signature before it
-  is used.
-- **Licence:** the same PlainTake licence and the same Gumroad key as the CLI. Without a key,
-  videos end with the credit card, as on the Free tier.
-
-It is a beta: report anything broken in the [issues](https://github.com/plaintake/plaintake/issues/new/choose).
-
 ### GitHub Actions
 
 [`plaintake/action`](https://github.com/plaintake/action) runs a scenario in CI. By default it
@@ -223,7 +198,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.33.0
+    version: 1.35.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```

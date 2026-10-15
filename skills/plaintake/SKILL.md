@@ -173,7 +173,9 @@ precedence; a source checkout needs it installed in your project.
    `render --aspect 9:16 --reframe follow`, no re-record. For TikTok or YouTube Shorts use
    `--for tiktok` / `--for shorts` instead: the `social` layout (a larger 9:8 window clear of the
    feeds' own chrome, bold word-lit captions; `--rounded on` for rounded corners) with the
-   platform's caption mode.
+   platform's caption mode. The cut is narrower than the frame: a chapter zooms out in place over
+   the content, and a click on a bare `{ x, y }` point already in view keeps the frame, so a
+   "click off" point should sit near the content, not in an empty margin.
    Give the scenario a `hook: '…'` (one or two lines, emoji allowed) — it is drawn above the
    picture for the first 3 s; `validate` refuses a hook the bundled fonts cannot draw.
 11. **Never type a secret into a terminal.** List the variable in `terminal.env` and
