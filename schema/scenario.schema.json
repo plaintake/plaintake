@@ -20,6 +20,11 @@
       "minLength": 2
     },
     "viewport": {
+      "default": {
+        "width": 1920,
+        "height": 1080,
+        "deviceScaleFactor": 1
+      },
       "type": "object",
       "properties": {
         "width": {
@@ -58,18 +63,22 @@
       ]
     },
     "locale": {
+      "default": "en-US",
       "type": "string",
       "const": "en-US"
     },
     "timezoneId": {
+      "default": "UTC",
       "type": "string",
       "const": "UTC"
     },
     "colorScheme": {
+      "default": "light",
       "type": "string",
       "const": "light"
     },
     "reducedMotion": {
+      "default": "reduce",
       "type": "string",
       "const": "reduce"
     },
@@ -292,6 +301,9 @@
                 "type": "string",
                 "minLength": 1
               },
+              "scratchCopy": {
+                "type": "boolean"
+              },
               "launch": {
                 "type": "string",
                 "enum": [
@@ -316,6 +328,9 @@
           "type": "string",
           "minLength": 1
         },
+        "scratchCopy": {
+          "type": "boolean"
+        },
         "launch": {
           "type": "string",
           "enum": [
@@ -336,6 +351,19 @@
             "cut",
             "card"
           ]
+        },
+        "cleanup": {
+          "type": "object",
+          "properties": {
+            "downloads": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "downloads"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -361,11 +389,6 @@
   "required": [
     "schema",
     "id",
-    "title",
-    "viewport",
-    "locale",
-    "timezoneId",
-    "colorScheme",
-    "reducedMotion"
+    "title"
   ]
 }

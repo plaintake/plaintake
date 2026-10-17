@@ -4,6 +4,49 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## Unreleased
+
+**Mac app "not found" errors say what is there instead.** When `app.click`, `app.locate` or another
+verb cannot find its element, the error lists the closest names of that role in the app's windows,
+and says when the name is there in another window or under another role. A missing `app.menu` item
+lists that menu's items, and a missing `app.choose` item lists the pop-up's. Names now match across
+curly and straight quotes, `…` and `...`, no-break spaces and invisible marks, so `Don't Save` finds
+`Don’t Save`. `{ role: 'image' }` finds an image, and a mistyped key name in `app.press` suggests the
+right one. A menu path that fails partway closes the menus it opened.
+
+**`app.menu` and `app.choose` no longer open in a silent second before their step.** The menu now
+opens inside the step, so its caption and voice cover the opening and the take has no still,
+silent gap to fail on. The cursor still lands on the item as the menu is open.
+
+**New: `demo.say({ id, subtitle })`**, a narrated step that does nothing (actors have `say` too),
+and **`app.rect`, `app.point` and `app.grid`** for what Accessibility does not expose: a locator over
+a window rect, a step that points the cursor at a rect without sending the app anything, and a grid
+of cells (`app.click(cell(2, 1))` clicks a cell's centre). **`app.closeAndDiscard()`** is the
+unnarrated last step that closes the document and answers Don't Save, Delete or Discard, and
+becomes a `demo.note` instead of a failure when it can't.
+
+**New: `desktop.scratchCopy: true`** opens a temporary copy of `document`, deleted after the run, so
+an app that autosaves never changes your file, and **`desktop.cleanup.downloads`** deletes the files
+an export left in ~/Downloads during the run (never one that was there before).
+
+**New: `scenarioDefaults` in `plaintake.config.json`**: a `uiScale` and per-app launch arguments every
+scenario gets under its own fields. `validate` and `check` now take `--config` too, and `validate`
+reports which defaults took effect. A scenario may also leave out `viewport`, `locale`, `timezoneId`,
+`colorScheme` and `reducedMotion`, which only ever had one value each. `validate` also reports a
+scenario's `camera` overrides when it declares them.
+
+**New: `plaintake inspect-app <scenario.ts>`** shows what a scenario can target before you write it:
+the Mac app's windows front to back with each element's role, the name `app.click` matches and its
+rect, every menu path, and a still of the window with a grid every 100 points (`--action` opens a
+dialog first). A website scenario gets its accessibility snapshot and a still.
+
+**`demo.step` without an `id` is a usage error** naming the missing field, instead of a TypeError
+from deep inside the narrator.
+
+**A Mac app that opens on an Open panel** now fails with the way round it (launch it with
+`-NSShowAppCentricOpenPanelInsteadOfUntitledFile NO`, or name a `desktop.document`) instead of a bare
+timeout.
+
 ## 1.35.0
 
 **Mac app recordings no longer freeze or go black partway through.** The recording page showed the

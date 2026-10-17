@@ -54,12 +54,12 @@ export default defineDemo({
 | `id` | lowercase kebab-case string | yes | Authored and stable. Never generate it — it names the scenario across every run. |
 | `title` | non-empty string | yes | Shown in `validate`/`inspect` output. |
 | `language` | string, min length 2 | no, defaults to `'en'` | The narration/caption language tag. |
-| `viewport` | `{width:1920,height:1080,deviceScaleFactor:1}` | yes | The captured frame; every field is a literal. |
+| `viewport` | `{width:1920,height:1080,deviceScaleFactor:1}` | no, defaults to that | The captured frame; every field is a literal. |
 | `uiScale` | `1`, `1.5` or `2` | no, defaults to `1` | How large the page is drawn inside that frame, like browser zoom. At `2` the page lays out at 960×540 CSS pixels and is painted at 2×, so the video is still 1920×1080 and the UI in it is twice the size and sharp — what a vertical `--aspect 9:16` cut needs to stay readable. The app sees the narrower viewport, so its responsive layout may change. Coordinates you pass to `page.mouse` or a scroll delta are CSS pixels. |
-| `locale` | `'en-US'` | yes | The only supported locale. |
-| `timezoneId` | `'UTC'` | yes | The only supported timezone. |
-| `colorScheme` | `'light'` | yes | The only supported scheme. |
-| `reducedMotion` | `'reduce'` | yes | The only supported value — recordings must not depend on CSS motion. |
+| `locale` | `'en-US'` | no, defaults to `'en-US'` | The only supported locale. |
+| `timezoneId` | `'UTC'` | no, defaults to `'UTC'` | The only supported timezone. |
+| `colorScheme` | `'light'` | no, defaults to `'light'` | The only supported scheme. |
+| `reducedMotion` | `'reduce'` | no, defaults to `'reduce'` | The only supported value — recordings must not depend on CSS motion. |
 | `allowedConsoleErrors` | string array | no, defaults to `[]` | Exact console error strings this scenario tolerates. Anything else fails the run. |
 | `terminal` | object | no | Record a live terminal instead of (or beside) a web app. See [Recording a terminal](#recording-a-terminal). Fields: `shell` (`'bash' \| 'zsh' \| 'sh'`, default `'bash'`), `command` (argv array, omit for an interactive shell), `cols` (40–200, default 120), `rows` (12–60, default 34), `cwd`, `env` (names copied from your environment), `secrets` (names, a subset of `env`, masked by value), `browser` (`true` adds a web actor; see below), `label` and `transition` (`'cut' \| 'card'`; both need `browser: true`). `uiScale` must be 1 (exit 2 otherwise), and `preflight`/`warmup` are refused. |
 | `desktop` | object | no | Record macOS app windows. See [Recording a macOS app](#recording-a-macos-app): one app is `app`, several are `apps` ([Several Mac apps in one video](#several-mac-apps-in-one-video)). |
@@ -94,6 +94,7 @@ with `demo.actor`.
 | Method | Signature | Purpose |
 |---|---|---|
 | `chapter` | `(title: string) => Promise<void>` | Marks a chapter boundary on the timeline. Holds an establishing beat before the next step starts (not on a desktop scenario: a Mac window doesn't repaint while it waits, so the beat would only film a silent, still pause). The MP4 chapter markers derived from the events are free on every tier. |
+| `say` | `({id, subtitle, title?, target?, highlight?, holdMs?, voice?}) => Promise<void>` | A narrated step that does nothing: `step` with an empty `run`. `target` frames something while the line is spoken. Actors have `say` too. |
 | `step` | `({id, title, subtitle?, target?, action?, highlight?, holdMs?, run}) => Promise<void>` | The unit of narrated action. `run` performs it; `subtitle` is both the on-screen caption and the spoken line — you may write a `[pause]` in it to break a long line (see [Narration breaks](#narration-breaks)); `target` (a `Locator`) is recorded for the cursor/camera/highlight to read, never used to act; `action` (`'click' \| 'type' \| 'point'`) tells the cursor what to draw; `highlight` (`boolean \| { label? }`) dims everything but `target` — see [Highlighting](#highlighting). |
 | `assert` | `({id, title, run}) => Promise<void>` | A checked expectation. A rejection fails the run; it does not stop the recording. |
 | `mask` | `({id, selector, reason?}) => Promise<void>` | Hides a CSS selector's contents in every frame it could appear in, from the moment it is registered — register it *before* the element exists so nothing is ever visible. A selector, not a `Locator`, is what makes that possible. |
@@ -170,8 +171,16 @@ captions, narration, cursor, camera, highlights and chapters work unchanged. It 
 
 ```ts
 desktop: { app: 'com.microsoft.Excel' }            // a bundle id, or a .app path relative to this file
-// optional: args: ['--safe'], document: 'book.xlsx', launch: 'fresh' | 'attach'
+// optional: args: ['--safe'], document: 'book.xlsx', scratchCopy: true, launch: 'fresh' | 'attach',
+//           cleanup: { downloads: '^Untitled( \\d+)?\\.pdf$' }
 ```
+
+`scratchCopy: true` opens a temporary copy of `document` instead of the file itself and deletes
+the copy after the run, so an app that autosaves (Preview, Excel) never changes the original.
+`cleanup.downloads` is a regular expression matched against the names of files in `~/Downloads`
+once the run ends, whatever its outcome: a match created during the run (an export's
+`Untitled.pdf`) is deleted and logged in `logs/recorder.log`; a file that was there before is
+never touched.
 
 With no `launch`, PlainTake uses the app if it is open and starts it if not (and quits it at the end
 only if it started it). `launch: 'fresh'` refuses an app that is already open rather than quit it;
@@ -179,21 +188,37 @@ only if it started it). `launch: 'fresh'` refuses an app that is already open ra
 
 | Verb | Purpose |
 |---|---|
-| `app.click({ role, name } \| { x, y }, meta?)` | Presses the element (AXPress when it offers it, else a pointer click at its centre), or clicks the pointer at a window point, for what Accessibility does not expose (a spreadsheet's cells, the arrow beside a cell). A point outside the window is refused before the step starts (exit 2). |
+| `app.click({ role, name } \| { x, y } \| { x, y, width, height }, meta?)` | Presses the element (AXPress when it offers it, else a pointer click at its centre), or clicks the pointer at a window point, for what Accessibility does not expose (a spreadsheet's cells, the arrow beside a cell). A rect (an `app.grid` cell) is clicked at its centre and its step targets the rect. A point outside the window is refused before the step starts (exit 2). |
 | `app.doubleClick({ role, name } \| { x, y }, meta?)` | A pointer double-click at the element or the point. |
-| `app.choose({ role, name }, item, meta?)` | Picks `item` from a pop-up button or combo box: the menu opens before the step starts, so the video shows it open and the cursor goes to the item, which is pressed inside the step. A control or item not found is exit 4. |
+| `app.choose({ role, name }, item, meta?)` | Picks `item` from a pop-up button or combo box, in one step: the menu opens once the step has started (the caption and voice cover the opening), the cursor goes to the item, and the item is pressed. A control or item not found is exit 4, and the error lists the pop-up's items. |
 | `app.type(text, meta?)` | Types into whatever has keyboard focus, at a fixed pace. |
 | `app.press(keys, meta?)` | Key chords, space-separated: `'Enter'`, `'Cmd+1'`, `'Cmd+a Delete'`. A single character is case-sensitive, as in Playwright: `'Cmd+a'` selects all, `'Cmd+A'` is Cmd+Shift+A. A character names the key that types it on the Mac's current keyboard layout, so `'Cmd+z'` is undo on QWERTY, AZERTY and Dvorak alike. Named keys (any case): `Enter`/`Return`, `Tab`, `Space`, `Backspace`, `Delete` (forward delete), `Escape`/`Esc`, `ArrowLeft`/`ArrowRight`/`ArrowUp`/`ArrowDown` (or `Left`/`Right`/`Up`/`Down`), `Home`, `End`, `PageUp`, `PageDown`, `F1`–`F12`; modifiers `Cmd`/`Command`/`Meta`, `Ctrl`/`Control`, `Alt`/`Opt`/`Option`, `Shift`. Any other key is refused before its step starts (exit 2). |
-| `app.menu('Format > Cells…', meta?)` | Opens each menu from the menu bar, then presses the last item inside the step, so the video shows the menu open. The menu bar itself is above the frame; the drop-down's top edge rides the frame's top edge. |
+| `app.menu('Format > Cells…', meta?)` | Opens each menu from the menu bar, then presses the last item, all inside the step: the caption and voice cover the opening, and the video shows the menu open. The menu bar itself is above the frame; the drop-down's top edge rides the frame's top edge. An item not found lists that menu's items, and closes the menus it opened. |
 | `app.drag(from, to, opts?)` | Presses on `from`, moves the pointer to `to` and releases there: moving a text box, dropping a file on a folder, reordering a row. `from` is an element `{ role, name }` or a window point `{ x, y }`; `to` is an element (its centre), an offset `{ dx, dy }` from the grab point, or a window point `{ x, y }`. Window points are the window's own points, 1920×1080 at `uiScale` 1 (960×540 at 2), from its top-left. `opts` is a step's meta plus `grab: { x, y }` (where to press on an element, from its top-left; default its centre) and `durationMs` (200–3000, default 600). A drop outside the window, a bad `durationMs` or `grab`, or `grab` with a point `from` is refused before the step starts (exit 2); an element not found is exit 4. The rendered cursor presses, travels with the drag and ripples again on the drop. |
 | `app.waitForText(pattern, {timeoutMs?, id?, title?})` / `app.waitForWindow(title, …)` | Waits on the text of the app's windows, dialogs and alerts included (through Accessibility), or on a window title; `demo.waitFor`'s bounds, exit 4 on timeout. |
 | `app.locate({ role, name })` | A locator over the element's rect right now, to use as a step's `target`. Not found is exit 4. |
 | `app.text()` | The visible text of the app's windows, front to back, one element per line. |
 | `app.assert({id, title, run})` | `demo.assert` against the app. |
 | `app.mask({ id, target: { role, name }, reason? })` | Hides the element for the rest of the video (see below). |
+| `app.rect({ x, y, width, height })` | A locator over a window rect, as a step's `target` (`demo.say({ target })`), for something Accessibility does not expose. |
+| `app.point({ x, y, width, height }, meta?)` | A step whose cursor goes to the rect's centre and ripples as a click, sending the app nothing: pointing at a cell or a drawn shape while the line names it. |
+| `app.grid({ x, y, colWidth, rowHeight })` | `(row, col) => rect` over equal cells, 0-based from the top-left cell: `const cell = app.grid({ x: 52, y: 180, colWidth: 96, rowHeight: 24 }); await app.click(cell(2, 1))`. Nothing is read from the app. |
+| `app.closeAndDiscard({ id?, title? })` | The last step, unnarrated and best-effort: File > Close Window (or File > Close), then Don't Save, Delete or Discard if the app asks. A failure becomes a `demo.note`, never a failed run. |
+
+**See the app before writing against it.** `plaintake inspect-app <scenario.ts>` opens the
+scenario's app as a recording would and lists each window front to back with its elements (short
+role, the name `app.click` matches, value, rect in window points) and every menu path as `app.menu`
+takes it (the Apple menu is left out: its Recent Items names your files), and writes `still.jpg`: the window at recording size with a grid every 100 points, one
+pixel per window point. `--action 'menu:Data > Validation...'` opens a dialog first; `--app <id>`
+picks one of `desktop.apps`; `--keep-open` leaves the app running. For a website scenario, pass
+`--base-url` or `--fixture` and get Playwright's accessibility snapshot instead.
 
 `role` is an Accessibility role (`'AXButton'`, `'AXCheckBox'`) or a short form: `button`,
-`checkbox`, `textfield`, `text`, `menuitem`, `menubutton`, `popup`, `radio`, `combobox`, `link`.
+`checkbox`, `textfield`, `text`, `menuitem`, `menubutton`, `popup`, `radio`, `combobox`, `link`,
+`image`. Names match across curly and straight quotes (`Don't Save` finds `Don’t Save`), `…` and
+`...`, no-break spaces and invisible marks; otherwise exactly. An element not found fails with the
+closest names of that role in the app's windows, and says when the name is in another window or
+under another role.
 `name` matches the element's title, then its description (Office splits names across the two),
 then a static text's words, then the label beside it that names it (Excel's dialog controls are
 named only that way: the pop-up under "Allow:" is `{ role: 'popup', name: 'Allow:' }`). Step ids are `app.1`, `app.2`, … unless you give one.
@@ -279,6 +304,16 @@ now (exit 2).
 Desktop recordings are not part of `make reproduce`: the app's pixels depend on the machine, but
 two renders of one bundle are still byte-identical.
 
+**Defaults from the config.** A `plaintake.config.json` may hold `scenarioDefaults`, which every
+scenario it runs gets under its own fields: `uiScale` when the scenario names none, and launch
+arguments per app (`appArgs`, keyed by the bundle id or `.app` path the scenario names), put before
+the app's own `args`, each flag only when the scenario does not pass that flag itself. `run`, `check`
+and `validate` read it (`--config` names the file); `validate` reports which took effect.
+
+```json
+{ "scenarioDefaults": { "uiScale": 1.5, "appArgs": { "com.apple.Preview": ["-ApplePersistenceIgnoreState", "YES"] } } }
+```
+
 ### A Mac app and a browser together
 
 `desktop: { ..., browser: true }` works as [`terminal.browser`](#terminal-and-browser-together)
@@ -300,7 +335,8 @@ async run({ demo, app, baseURL }) {
 }
 ```
 
-The turn calls are the terminal's (`card`, `card: false`, `transition: 'card'`). `app` verbs are
+The turn calls are the terminal's (`card`, `card: false`, `transition: 'card'`); a turn is a hard
+cut unless you ask for a card, so `{ card: false }` is never needed. `app` verbs are
 refused (exit 2) while the web actor holds the turn. `--storage-state` reaches the web actor, so it
 starts signed in. The web actor's page is not traced, and the actor badge draws over the window's
 top-left corner. `demo.mask` stays refused: hide a web secret with the web actor's own
@@ -335,7 +371,7 @@ async run({ demo, app, apps }) {
 Each app is started in order before the video starts (and quit at the end only if PlainTake
 started it), and a turn brings that app's window to the front before its first step, so its
 clicks and keys reach it. An app's verbs are refused (exit 2) while another actor holds the turn.
-Turns between apps are hard cuts unless `transition: 'card'`. Add `browser: true` to take turns
+Turns between apps are hard cuts unless `transition: 'card'` (a card films a still, silent stretch; prefer the cut). Add `browser: true` to take turns
 with a web actor as well, as above; without it, `demo.actor` accepts only the apps' ids. Every
 window is resized to the same frame and filmed on its own, so the Mac's display must fit one
 window, not all of them.
