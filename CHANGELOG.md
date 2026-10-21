@@ -4,7 +4,63 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
-## Unreleased
+## 1.36.0
+
+**New: `--encode master`, an upload master for long-form video.** `run --encode master` renders
+with x264 `slow` at CRF 14 and 192 kbps audio at the narration's own 24 kHz mono, and normalises
+narration you supplied (`--speech file`) to −14 LUFS like a synthesised one. `render --encode
+master` (or `default`) re-encodes an existing recording under that profile. Without the flag every
+render is byte-for-byte what it was.
+
+**Supplied narration can carry its word timings.** Put `<stem>.words.json` beside a supplied
+`<stem>.wav`, either an array of `{ word, startMs, endMs }` or `{ words, wordStartMs,
+wordDurationMs }`, in milliseconds from the start of the clip, and the captions light each spoken
+word on time, as they do for the built-in voice. A file that doesn't parse, or whose words are out
+of order or run past the clip, is a usage error naming it. Without the file nothing changes.
+
+**Hand a recording to the Concat editor (experimental).** `plaintake concat build <bundle>
+--output <dir>` lays a finished recording out as a project in [Concat](https://github.com/jub0t/Concat),
+a free, local video editor you install separately: one clip per chapter, with an optional music bed
+(`--music`) looped under it and turned down under every narrated line, a disclaimer lower third
+(`--disclaimer`) and seconds of end screen (`--end-screen`). Edit it there — by hand, or by an AI
+agent through Concat's own MCP server — then `plaintake concat finish <dir>` exports it at 1440p and
+moves the recording's chapters and captions to wherever their footage now sits, so a chapter list
+survives the edit. The recording is never changed, and PlainTake still makes no sound of its own:
+the music is Concat's.
+
+**Shorts covers fit the profile grid.** TikTok's and Instagram's profiles show a video's cover
+as the centred 3:4 tile of the 9:16 frame, rows 240–1680 of 1920, and the short-form layout
+(`--for tiktok|shorts`, `--reframe social`) started its hook band at row 150, so the top of the
+hook was cut off on every grid until the cover was dragged down by hand. The layout now sits
+inside that tile: the hook band at rows 246–440, the picture (still 1080×960) at 456–1416, the
+captions from 1456; the room comes out of the clear band under the captions, which the feeds
+draw their own caption block over. A plain re-render of an older bundle is unchanged (its hook
+file is frozen); `render --aspect 9:16 --reframe social` on one lays out the new rows. The plain
+9:16 letterbox and `--reframe follow` keep their hook band. `hookWindow` names, from a frozen
+plan alone, when the hook is on screen and `coverMs`, the frame to take a thumbnail from.
+
+**Readable actor badges on Shorts.** The label naming who is on screen ("Word", "Excel",
+"Terminal") is now white type on a dark plate, so it reads over a white ribbon as well as a dark
+terminal. On `--aspect 9:16`, `1:1`, `--reframe follow`, `social` (`--for tiktok|shorts`) and
+`inset` it is drawn at the top-left of the picture at output size, where the camera's crop can no
+longer cut it off, as it did on most frames of a Short. 16:9 keeps its place and size. Re-render
+an older bundle with `--aspect` to get it there; a plain re-render is unchanged.
+
+**New: `warmup` on a Mac app scenario, never filmed.** `warmup({ app, apps, demo })` runs once the
+apps are open with their documents and before the video starts: answer start-up dialogs ("Open
+recovered workbooks?", a converter or welcome window), dismiss a message bar, set the zoom, open the
+tab the video starts on, and none of it reaches the video, the captions, the narration or the step
+list. The handles are `run`'s, with no step around their verbs (no `subtitle`; `mask`, `point`,
+`assert` and `actor` are refused). With several apps, each verb brings its app to the front, and the
+first app is in front again when `run` starts. `check` runs it too. `preflight` and
+`handoff: 'preflight'` are still refused on a Mac app scenario. Every `warmup`'s `demo` now has
+`note` as well.
+
+**Mac app videos end at the last narrated line.** Steps that start after it (closing documents,
+`app.closeAndDiscard()`, Delete on a keep-or-delete alert, a turn to another app to close it) still
+run, but are cut from the video and from the bundle's events; with several apps, the segments those
+turns opened are dropped. `logs/recorder.log` names what ran unfilmed. Web and terminal recordings
+are unchanged.
 
 **Mac app "not found" errors say what is there instead.** When `app.click`, `app.locate` or another
 verb cannot find its element, the error lists the closest names of that role in the app's windows,

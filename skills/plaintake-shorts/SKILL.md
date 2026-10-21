@@ -46,7 +46,7 @@ Per-app quirks:
    - the content centred in the 9:16 crop, with no blank area;
    - each caption over the thing it names;
    - text that is right (names, numbers, the merge result);
-   - the cover frame (time in the sheet) clean;
+   - the `cover` still (the first one: the hook on screen, the frame Studio sends as the thumbnail) clean;
    - no private data.
 8. **Report** in a few lines: what changed, what you checked, and anything small left for review. State any leftover files and what you cleaned up.
 
@@ -56,7 +56,8 @@ A pause of **1.1 s that is both silent and frozen fails the take.**
   - A long line takes the voice longer to synthesise than to speak (17 s once), which films a frozen pause.
   - Split a sentence across steps: "Click Document," / "then Mail Merge," / "and Merge."
 - **Every step that waits or moves gets a subtitle**, including `waitForText`, `waitForWindow`, menu steps and launch.
-  - A step with no line must be instant (`holdMs: 0`), even the last one: a slow unnarrated last step (cleanup) fails the take. Run slow cleanup unawaited under the last lines.
+  - A step with no line must be instant (`holdMs: 0`). On a website, that includes the last one: a slow unnarrated last step (cleanup) fails the take; run slow cleanup unawaited under the last lines. On a Mac app, what runs after the last narrated line is cut from the video (closing documents, a Delete on a keep-or-delete alert, a turn to close another app): put it there, after the last line.
+- **On a Mac app, answer start-up popups in `warmup({ app, apps, demo })`, which is never filmed**: recovered-workbook and converter prompts, welcome galleries, a message bar, the zoom (`app.menu`), the tab the video starts on. Its verbs are run's verbs with no step and no line (no `subtitle`; no `mask`, `point`, `assert` or `actor`); `demo` has `waitFor` and `note`. The first app is in front when run starts.
 - **`app.menu` opens its menu inside its own step**, so its line covers the opening. Name the path in its caption.
 - **A line with no action** is `demo.say({ id, subtitle })`.
 - **`write_scenario` warns** on lines likely to synthesise slowly, waits with nothing said over them, and a short running long. Fix its `warnings` before recording.
@@ -79,6 +80,7 @@ The phone video is the middle of the window, and the camera follows each step's 
 - **Open dialogs fully before the step that shows them.** Use `waitForText` on words inside the dialog.
 - **Menus open over the page.** Put them on their own steps and never during a step whose caption is about the content underneath.
 - **Show where the data comes from first** if the short uses it (the class list before the merge). Two apps use `desktop.apps` and `demo.turn(other.actor)`, a hard cut by default; never ask for a card, which films black and silent.
+- **The app badge** (each app's `label`, "Word", "Excel") is drawn in the top-left corner of the phone picture, white bold on a dark plate, whatever the camera does. Keep labels short (one word), and keep what the caption is about out of the picture's top-left corner, where the badge covers it.
 - **What isn't filmed, or has filmed black**: windows of other processes (Open and Save panels) are never filmed; turn cards film black; keep/close alerts and Office's menus have filmed black in some takes, cause unknown (a slow app may not have drawn a menu yet). Keep them out of narrated steps, and do the close alert last.
 
 ## Input safety (the person's Mac)
@@ -95,10 +97,10 @@ The phone video is the middle of the window, and the camera follows each step's 
 - **Edit the upload sheet** only where the change affects it: the caption and the notes. Keep its layout exactly as `rules.format` gives it.
 - **"Too many failed attempts"**: tell the person. A changed scenario that passes `write_scenario` or rehearses clean starts the attempts over; otherwise it needs `studio review --retry`. Don't loop.
 - **`write_scenario` lists `stepIds`**: ids of the last take your change dropped, and positional ones (`app.N`) that may have moved. Pin the ones a note names.
-- **Change one sheet field** (the caption, a title, the cover second) with `edit_sheet`, not by rewriting the sheet.
+- **Change one sheet field** (the caption, a title) with `edit_sheet`, not by rewriting the sheet. The cover is the hook's frame, taken from the recording; the sheet's cover second counts only for a video with no hook.
 
 ## Leaving things as they were
-- **Close what the run opened without saving**: `app.closeAndDiscard()` as the last step. It is unnarrated and best-effort: a failure becomes a `demo.note`, never a failed take.
+- **Close what the run opened without saving**: `app.closeAndDiscard()` after the last narrated line. It is unnarrated and best-effort (a failure becomes a `demo.note`, never a failed take), and never filmed: the video ends at the last line.
 - **Sample files**:
   - Open them with `desktop.document`, and `scratchCopy: true` for an app that autosaves (Preview, Excel): the app opens a temporary copy.
   - Never open the person's own files.
@@ -112,13 +114,14 @@ The phone video is the middle of the window, and the camera follows each step's 
 | Probing with rehearsals that throw on purpose, or osascript | `inspect_app` first |
 | Guessing a name: "Data Validation…", "Close" | Copy it from `inspect_app`; a not-found also lists the closest names |
 | Long narration lines | Short lines, one per step |
-| A step with no narration that waits | A subtitle, or `holdMs: 0` and last |
+| A step with no narration that waits | A subtitle, or `holdMs: 0`; on a Mac app, in `warmup` or after the last line |
+| Unnarrated popup-closing steps at the start of `run` (Mac app) | `warmup`, which is never filmed |
 | Trusting a passed take | `step_frames` every step |
 | `request_recording` on a produced short | `request_recording({ reviseNote })` |
 | `sleep 45` between polls | `get_job({ waitSeconds: 300 })` |
 | A turn card between apps | A plain `demo.turn`: a cut |
 | Hand-written `Rect`/`point` helpers, empty `run` steps | `app.rect`, `app.point`, `app.grid`, `demo.say` |
-| A hand-written close and Don't Save | `app.closeAndDiscard()`, last |
+| A hand-written close and Don't Save | `app.closeAndDiscard()`, after the last line |
 | Clicking a dialog's edge button | Return, or point at the dialog's middle |
 | Real mouse or keystrokes into the Mac | Fake cursor; ask first |
 | Renumbered step ids after a revision | Pin the old ids |

@@ -48,7 +48,7 @@ locators (`getByRole`, …). Mask anything private with `web.mask` before it app
 - **A new sheet may show a "Save time with tables" card and a Tables side panel.** Dismiss them in warmup ("Got it"). There are several hidden sidebar Close buttons: use `.waffle-sidebar-title-close:visible`.
 - **Targets on the grid canvas**: select the range with the Name box (`#t-name-box`), then lay an invisible box over the union of `.range-border, .active-cell-border` rects, in warmup.
 - **Conditional formatting sidebar**: the condition dropdown shows "Is not empty", the formula field has the placeholder "Value or formula", swatches are `[aria-label="light red 2"]`, and there is a "Done" button.
-- **Warmup's `demo` has no `note()`.** Collect messages and note them at the start of `run`.
+- **Warmup's `demo` has `note()`** (since this PlainTake release; older ones lacked it): a note there is reported with the run's own.
 
 ## Every website
 - **A `demo.chapter()` between narrated steps films a ~1.1–1.3 s silent zoom-out.** Over a static page that fails the take. Keep chapters out of short scenarios, or only before the first line.

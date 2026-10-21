@@ -50,6 +50,14 @@ Sources: <https://github.com/notofonts/notofonts.github.io> (hinted static TTFs)
 <https://github.com/google/fonts/tree/main/ofl/notoemoji>; SHA-256s pinned in
 `assets/fonts-social/checksums.txt`, fetched by `scripts/fetch-font.sh`.
 
+## Concat — AGPL-3.0, and deliberately not redistributed
+
+Concat (github.com/jub0t/Concat), the video editor `plaintake concat` hands a finished bundle
+to, is **not shipped with the product** and no part of it is linked or vendored. The user
+installs it; PlainTake starts it as a separate process (`concat --mcp headless`) and speaks to it
+only over the Model Context Protocol on that process's stdin and stdout, exchanging JSON and
+file paths. Keep it that way: **do not vendor, bundle or link Concat or any of its code.**
+
 ## FFmpeg — GPL, and deliberately not redistributed
 
 FFmpeg is **not shipped with the product**. It is invoked as a separate executable that

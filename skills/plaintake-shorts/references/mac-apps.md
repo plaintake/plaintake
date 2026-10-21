@@ -22,6 +22,7 @@ still holds when the app updates.
 - **`app.waitForText`**:
   - `timeoutMs` must be ≥ 5000.
   - Use a regex when the app inserts invisible marks (`/Classic Certificate/`).
+- **Several apps** (`desktop.apps`): each app's `label` is its badge, drawn at the top-left of the phone picture on a dark plate in every frame of its turn. Use the app's own name ("Word", "Excel"); the badge covers about 120×60 px of that corner, so a toolbar under it is fine and the subject of a line is not.
 - **Roles**: thumbnails are `AXImage` (short role `image`). `inspect_app` shows each element's role.
 
 ## Pages
@@ -50,7 +51,7 @@ still holds when the app updates.
   - Open the letter in place and never save it.
   - Rebuild with the asset script on a new Mac.
 - **Merge** opens the result in a new window. Return presses Merge.
-- **Closing the merged document** asks whether to keep it. Choose Delete, last and unnarrated.
+- **Closing the merged document** asks whether to keep it. Choose Delete, unnarrated, after the last line (never filmed).
 
 ## Numbers
 - **A .xlsx** opens with nothing selected and its cells aren't in Accessibility. Cmd+A then Option+Return reaches A1. Point at cells with `app.grid` cells.
@@ -65,7 +66,7 @@ still holds when the app updates.
   - Move with keys from A1.
   - Point the video's cursor at measured rects, using a grid helper for rows and columns.
   - Never use real mouse input.
-- **Recovery prompt.** After an interrupted run Excel asks "Open recovered workbooks?". Answer No first:
+- **Recovery prompt.** After an interrupted run Excel asks "Open recovered workbooks?". Answer No in `warmup`, which is never filmed:
   - `if ((await app.text()).includes('Open recovered workbooks?')) await app.click({ role: 'button', name: 'No' })`
 - **Ribbon and menus**: ribbon drop-downs ignore synthetic input, and Excel's menus have filmed as a black block in some takes (perhaps not yet drawn).
   - The menu item is "Data > Validation...", with three dots.
@@ -83,12 +84,15 @@ still holds when the app updates.
 - **Paste Special** (Ctrl+Cmd+V) defaults to HTML Format. Cmd+A then F9 updates links.
   - A pasted link reads the *saved* Excel file, so save a scratch copy first.
 - **The close prompt** has "Don’t Save" with a curly apostrophe; names match either way.
-- **Close explicitly, also in `finally`** (`word-find-replace-letter-template`): `app.closeAndDiscard()` opened File > Close and left Word's save prompt unanswered. Use `app.press('Cmd+w')` under the last line, `waitForText(/Don.t Save/)`, then click 'Don’t Save' (`holdMs: 0`). Wrap the run in try/finally that does the same when a step failed: a window left open sits beside the next take's letter and breaks it, and once quit it comes back as "<name> - Recovered" on every launch until someone closes it by hand.
-- **Start gallery on a cold launch**: Word sometimes opens its Start gallery (account name, recent files) in front of the sample document; it swallows menu commands and is private. Before the first line: `if (/Blank Document|Recommended/.test(await app.text())) await app.click({ role: 'button', name: 'Cancel' }, …)`.
+- **Close explicitly, also in `finally`** (`word-find-replace-letter-template`): `app.closeAndDiscard()` opened File > Close and left Word's save prompt unanswered. Use `app.press('Cmd+w')` after the last line (never filmed), `waitForText(/Don.t Save/)`, then click 'Don’t Save' (`holdMs: 0`). Wrap the run in try/finally that does the same when a step failed: a window left open sits beside the next take's letter and breaks it, and once quit it comes back as "<name> - Recovered" on every launch until someone closes it by hand.
+- **Wait about 1 s after the last line before Cmd+W** (`word-merge-if-fees-unpaid`): the video keeps a ~0.34 s tail after the last line, and a close sent at once faded the Don't Save alert in over the final frames. A plain `await new Promise((r) => setTimeout(r, 1000))` (no step) before the close keeps it unfilmed.
+- **Start gallery on a cold launch**: Word sometimes opens its Start gallery (account name, recent files) in front of the sample document; it swallows menu commands and is private. In `warmup`: `if (/Blank Document|Recommended/.test(await app.text())) await app.click({ role: 'button', name: 'Cancel' }, …)`.
 - **Find and Replace**: Cmd+Shift+H toggles the Find and Replace *sidebar* and was unreliable (opened once, nothing the next run; Word then reopens the sidebar as Thumbnails). Use `app.menu('Edit > Find > Advanced Find and Replace...')`: a centred dialog on its Find tab; click radio 'Replace', comboboxes 'Find what:' and 'Replace with:' (click to focus, then type), button 'Replace All'. Word answers "All done. We made N replacements." (OK = Return; Escape then closes the dialog). Replace All keeps a run's highlight on the new text.
 - **Sample .docx via textutil** drops highlights, fonts and page size and merges plain runs: wrap each word to patch in a styled span, then patch `word/document.xml` (`create-eu-staff-calendar-letter-assets.ts`). HTML tables flatten to one cell a line.
 - **No Merge to PDF** in Word 16.114 for Mac (`word-merge-to-pdf-hr-letters`): Mailings > Finish & Merge is a menubutton that *does* open on an AX click, but lists only Edit Individual Documents..., Print Documents... and Merge to E-Mail. One PDF per record needs Mergram.
 - **Keep `-AppleLocale en_IE`** for Word, as every Word short has: one launch with `en_US` showed "Default Editing Language Changed" and Word replaced Normal.dotm (keeping a backup). Market formats come from the data anyway.
+- **Link a Word table, not an .xlsx, when the merge only needs the values** (`word-merge-date-format-fix`): an .xlsx source goes through Word's Excel converter (Open Document in Workbook / Open Workbook), which hung Word at launch in five takes while rehearsals passed. A .docx holding one table, linked with `<w:dataType w:val="textFile"/>` and `<w:query w:val="SELECT * FROM /abs/path.docx"/>` (no odso), opens with no popups. Write each cell as Excel shows it.
+- **A force-quit Word leaves `AutoRecovery save of <doc>`** (Containers/com.microsoft.Word/.../AutoRecovery) and a `~$` lock beside the linked list; trash both before the next take, or Word can launch with no main window.
 - **A new linked workbook** needs Word's one-time Grant File Access (Select... opens an Open panel only the person can click), as `mailing-list.xlsx` did.
 - **No account** shows at the top right of a document window (Comments, Editing, Share only); nothing to mask there.
 

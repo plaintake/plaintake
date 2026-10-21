@@ -116,8 +116,10 @@ Two more hooks can sit beside `run()` in the same `defineDemo()` call:
   nothing to write to. This is where a sign-in belongs: nothing it does reaches the video or
   the trace.
 - **`warmup({ page, demo, baseURL })`** — runs after `preflight`'s hand-back and before
-  recording begins. Same restricted `demo` as `preflight`, for the same reason. Use it to
-  navigate to the page the video should open on, when starting cold would film a blank load.
+  recording begins. Same restricted `demo` as `preflight`, for the same reason, plus `note`
+  (reported with the run's own notes). Use it to navigate to the page the video should open on,
+  when starting cold would film a blank load. On a Mac app scenario it also gets the app handles
+  (see [Recording a macOS app](#recording-a-macos-app)).
 
 ## Recording a terminal
 
@@ -203,7 +205,7 @@ only if it started it). `launch: 'fresh'` refuses an app that is already open ra
 | `app.rect({ x, y, width, height })` | A locator over a window rect, as a step's `target` (`demo.say({ target })`), for something Accessibility does not expose. |
 | `app.point({ x, y, width, height }, meta?)` | A step whose cursor goes to the rect's centre and ripples as a click, sending the app nothing: pointing at a cell or a drawn shape while the line names it. |
 | `app.grid({ x, y, colWidth, rowHeight })` | `(row, col) => rect` over equal cells, 0-based from the top-left cell: `const cell = app.grid({ x: 52, y: 180, colWidth: 96, rowHeight: 24 }); await app.click(cell(2, 1))`. Nothing is read from the app. |
-| `app.closeAndDiscard({ id?, title? })` | The last step, unnarrated and best-effort: File > Close Window (or File > Close), then Don't Save, Delete or Discard if the app asks. A failure becomes a `demo.note`, never a failed run. |
+| `app.closeAndDiscard({ id?, title? })` | The last step, unnarrated and best-effort: File > Close Window (or File > Close), then Don't Save, Delete or Discard if the app asks. A failure becomes a `demo.note`, never a failed run. After the last narrated line, so it is never filmed (see below). |
 
 **See the app before writing against it.** `plaintake inspect-app <scenario.ts>` opens the
 scenario's app as a recording would and lists each window front to back with its elements (short
@@ -298,9 +300,40 @@ person works in the app's own window (PlainTake brings it to the front; no brows
 and the prompt names the app. The video is rolling, so mask anything private with `app.mask`
 before the handoff; a handoff's own `mask` option is a CSS selector and is refused here.
 
+**Set the app up in `warmup`, which is never filmed.** `warmup({ app, apps, demo })` runs once the
+apps are launched with their documents open and before capture starts, so nothing it does reaches
+the video, the captions, the narration or the step list. Answer the app's start-up dialogs there
+(a recovered-workbook prompt, a converter question, a welcome gallery), dismiss a message bar, set
+the zoom with `app.menu`, open the tab the video starts on. `app` and `apps` are the same handles
+`run` gets, and their verbs act on the app the same way, but record no step: an `id` is allowed and
+ignored, a `subtitle` is refused, and `app.mask`, `app.point`, `app.assert` and `app.actor` are
+refused (exit 2), since each is about the video. `demo` has `waitFor` and `note`. With several apps,
+a verb first brings its own app to the front, and the first app is brought back to the front when
+warmup returns, so `run` starts on the app it films with whatever window warmup left; `run`'s
+`demo.turn` works as before.
+
+```ts
+async warmup({ app: excel, apps }) {
+  const word = apps!['word']!;
+  if ((await excel.text()).includes('recovered')) await excel.click({ role: 'button', name: 'No' });
+  await word.menu('View > Zoom…');
+  await word.click({ role: 'button', name: 'OK' });
+  await word.click({ role: 'tab', name: 'Mailings' });
+},
+```
+
+**What runs after the last line is not filmed.** On a Mac app scenario, the steps that start after
+the last narrated step has finished (its line and its `holdMs`) still run, but the video ends there:
+closing documents, `app.closeAndDiscard()`, a Delete on a keep-or-delete alert, a `demo.turn` to
+another app to close it. Their events are taken out of the bundle too, and `logs/recorder.log` says
+`tail: cut …ms after the last narrated line; ran unfilmed: <ids>`. With several apps, the segments
+those turns opened are dropped, unless that would leave only the first one (then nothing is cut, and
+the log says so). An `explain` scene after the last line keeps the whole tail; a run that fails is
+never cut. Web and terminal scenarios are unchanged.
+
 Targets are authored against one `uiScale`: a responsive app re-lays out its controls at 960
-points wide. `preflight`, `warmup` and `handoff: 'preflight'` are refused on a desktop scenario for
-now (exit 2).
+points wide. `preflight` and `handoff: 'preflight'` are refused on a desktop scenario (exit 2): set
+up the app in `warmup` instead.
 Desktop recordings are not part of `make reproduce`: the app's pixels depend on the machine, but
 two renders of one bundle are still byte-identical.
 
@@ -338,8 +371,9 @@ async run({ demo, app, baseURL }) {
 The turn calls are the terminal's (`card`, `card: false`, `transition: 'card'`); a turn is a hard
 cut unless you ask for a card, so `{ card: false }` is never needed. `app` verbs are
 refused (exit 2) while the web actor holds the turn. `--storage-state` reaches the web actor, so it
-starts signed in. The web actor's page is not traced, and the actor badge draws over the window's
-top-left corner. `demo.mask` stays refused: hide a web secret with the web actor's own
+starts signed in. The web actor's page is not traced, and the actor badge (white on a dark plate) draws over the
+window's top-left corner; on a 9:16 or 1:1 video it sits at the top-left of the picture, so the
+social and follow crops never cut it off. `demo.mask` stays refused: hide a web secret with the web actor's own
 `web.mask({ id, selector })`, and an app one with `app.mask`. A session handoff is refused with
 `browser` (exit 2), since Chromium stays headless on a desktop run and a person could not act in
 the web half.

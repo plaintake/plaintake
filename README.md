@@ -93,7 +93,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.35.0
+VERSION=1.36.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -150,7 +150,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.35.0
+VERSION=1.36.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -167,7 +167,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.35.0"
+$VERSION = "1.36.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -198,7 +198,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.35.0
+    version: 1.36.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -235,18 +235,23 @@ plaintake run      <scenario.ts> --output <dir> [--base-url <url> | --fixture]
                                   [--camera off|zoom] [--aspect 16:9|9:16|1:1]
                                   [--reframe letterbox|follow|social|inset]
                                   [--for tiktok|shorts] [--lead-in trim|keep]
+                                  [--encode default|master]
                                   [--speech off|on|file] [--voice <id>]
                                   [--config <path>] [--no-baseline | --update-baseline]
 plaintake check    <scenario.ts> [--base-url <url> | --fixture] [--output <dir>] [--no-baseline | --update-baseline]
 plaintake render   <bundleDir> [--subtitles soft|hard] [--aspect 16:9|9:16|1:1]
                                  [--reframe letterbox|follow|social|inset]
-                                 [--for tiktok|shorts] [--hook <text>|none] [--config <path>]
+                                 [--for tiktok|shorts] [--hook <text>|none]
+                                 [--encode default|master] [--config <path>]
 plaintake verify   <bundleDir>
 plaintake diff     <bundleDirA> <bundleDirB>
 plaintake inspect  <bundleDir>
 plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>] [--remember]
                                    [--expiry <duration>|none]
 plaintake unpublish <bundleDir | shareId | shareURL> [--endpoint <url>] [--key <key>]
+plaintake concat build <bundleDir> --output <dir> [--music <file>] [--music-db=<dB>] [--duck-db=<dB>]
+                                   [--disclaimer <text>] [--end-screen <s>] [--force]
+plaintake concat finish <dir> [--output <file.mp4>]
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
                                    [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
@@ -261,14 +266,15 @@ plaintake --version
 | Command | What it does |
 |---|---|
 | `validate` | Loads a scenario and checks it, without opening a browser |
-| `run` | Records, times the captions, renders, hashes, and writes a recording. The still, silent opening before the first thing happens (an app starting, a page loading, a chapter's opening beat) is cut to half a second; `--lead-in keep` keeps it |
+| `run` | Records, times the captions, renders, hashes, and writes a recording. The still, silent opening before the first thing happens (an app starting, a page loading, a chapter's opening beat) is cut to half a second; `--lead-in keep` keeps it. `--encode master` writes a top-quality upload master for long-form video (x264 slow at CRF 14, 192 kbps audio, narration you supplied normalised to −14 LUFS) |
 | `check` | Records and asserts without rendering — no FFmpeg needed, fast enough for every pull request. `--base-url` takes any URL, a production one included, so the same command gates a deploy: see [`docs/patterns.md`](docs/patterns.md), *Post-deploy smoke tests* |
-| `render` | Re-renders from a recording's frozen plan. No browser, no network, no clock |
+| `render` | Re-renders from a recording's frozen plan. No browser, no network, no clock. `--encode master` or `default` re-encodes it under that profile |
 | `verify` | Re-hashes every file against the manifest |
 | `diff` | Semantic diff between two bundles — steps, assertions, target position/name, timing and captions. No frame comparison |
 | `inspect` | Reports the video, captions, chapters, output sizes and toolchain. Read-only |
 | `publish` | Uploads a recording's video, captions and chapter marks to a share service and prints the viewer link — a page with a clickable transcript and chapter list. The share id is derived from the video's sha256, so republishing is a no-op. No MCP tool |
 | `unpublish` | Takes a published share down, by recording, share id or share URL. The link stops working at once, and publishing the same recording again restores it until the service deletes it for good. Cannot recall copies viewers already downloaded. No MCP tool |
+| `concat` | Hands a recording to the [Concat](https://github.com/jub0t/Concat) video editor, installed separately, for what PlainTake does not do: a music bed (ducked under the narration), a disclaimer, an end screen, and your own edits — by hand, or by an AI agent through Concat's MCP server. `finish` exports the edit at 1440p with the recording's chapters and captions moved to wherever their footage now sits. The recording itself is never changed. Experimental. No MCP tool |
 | `prune` | Deletes recordings under the working directory, selected by age, size cap, count or scenario. Dry-run unless `--yes`. No MCP tool |
 | `import` | Drafts a scenario from any Playwright `trace.zip` — yours, or a recording's own `trace/`. Placeholder subtitles, no timings, secret-looking values redacted. Review before committing. No MCP tool |
 | `doctor` | Checks FFmpeg, libass, x264 and the filters that are needed, and reports whether the voice model is installed |
@@ -339,7 +345,9 @@ and `--aspect 9:16` alone cuts it back to the letterbox.
 
 **Making a TikTok or a YouTube Short?** `--for tiktok` (or `shorts`) is one flag for the
 short-form layout, `--reframe social`: a larger 1080×960 window that follows the camera, placed
-clear of the feeds' own top bar, caption block and buttons; bold captions under it that light
+clear of the feeds' own top bar, caption block and buttons, and, with the hook and the captions,
+inside the 3:4 tile a profile grid shows, so a cover taken while the hook is up needs no
+cropping after upload; bold captions under it that light
 each word as it is spoken; your `branding.backgroundColor` around it (`--rounded on` rounds the
 picture's corners); the cursor on; and
 burned-in captions for TikTok, a selectable track for Shorts. Add a hook to the scenario —
@@ -552,7 +560,8 @@ restriction on selling what you make. See [`LICENSE`](LICENSE) §3.
 Stated up front rather than discovered later:
 
 - **The only sound is the captions read aloud** — no microphone, no page audio, no system
-  audio, no music, no sound effects. `--speech on` needs a one-time 93 MB voice-model
+  audio, no music, no sound effects. (A music bed can be added afterwards, outside the recording,
+  by handing it to an editor with `plaintake concat`.) `--speech on` needs a one-time 93 MB voice-model
   download. There are 28 English voices — variable per actor and per step — but English only,
   because the licence-clean pronunciation data PlainTake ships exists for English alone (the
   dictionaries the other languages need are eSpeak-derived, and GPL), so a non-English scenario
