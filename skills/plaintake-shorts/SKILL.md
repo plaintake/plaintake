@@ -1,6 +1,6 @@
 ---
 name: plaintake-shorts
-description: Use when writing, rehearsing, recording, revising or checking a short through the PlainTake Studio MCP tools (list_shorts, inspect_app, write_scenario, rehearse, request_recording, get_job, step_frames, revise_short, edit_sheet), for a website or a Mac app (Pages, Numbers, Excel, Word, Preview, Canva, Google Docs). Holds the working loop and the lessons from 12+ recorded shorts. Use alongside the scenario API reference that get_product_context returns.
+description: Use when writing, rehearsing, recording, revising or checking a short through the PlainTake Studio MCP tools (list_shorts, inspect_app, write_scenario, rehearse, request_recording, get_job, step_frames, review_take, revise_short, edit_sheet), for a website or a Mac app (Pages, Numbers, Excel, Word, Preview, Canva, Google Docs). Holds the working loop and the lessons from 12+ recorded shorts. Use alongside the scenario API reference that get_product_context returns.
 ---
 
 # Making PlainTake shorts
@@ -36,13 +36,13 @@ Per-app quirks:
    - Read rects and points off the still, in window points (1280×720 at uiScale 1.5): `app.rect(r)`, `app.point(r)`, `app.grid({ x, y, colWidth, rowHeight })`.
    - Never probe the app with osascript, System Events or screenshots of your own.
 4. **Write** the scenario and the sheet in place. Call `write_scenario({product, slug})` until it is ok.
-5. **Rehearse** whenever there are new targets or steps. Fix every `notes` entry: a target missing when its step begins films a frozen pause. Then `step_frames({ source: 'rehearsal' })`: one still per step, beside each step's `crop` (what the video shows of the capture) and `offCrop` (a target partly outside it). A failed rehearsal's job carries a still of the step it stopped in.
+5. **Rehearse** every scenario before recording it: `request_recording` is refused until the scenario as it is now has been rehearsed. Fix every `notes` entry: a target missing when its step begins films a frozen pause. Fix every `blocking` entry in `framing` (or accept a step that is right as it is with `acceptFraming: [{ stepId, reason }]`, which goes into the Review log). Then `step_frames({ source: 'rehearsal' })`: one still per step, cut to what the video shows with the target outlined, beside the step's line. A failed rehearsal's job carries a still of the step it stopped in.
 6. **Record**.
    - If the short is `produced`, pass the reviewer's change as `reviseNote` to `request_recording`: it sends it back and records in one call.
    - Then `get_job({ waitSeconds: 300 })` until it ends. A failed take carries stills of its problem steps.
    - Never use `sleep` in Bash.
    - `phase: 'waiting'` means the person has to click Start. Keep waiting, and never request again.
-7. **Check the take yourself** with `step_frames`, every step, before you call it done. A take that passes Studio's checks can still be wrong: a dropdown that never opened, the wrong page order, a sidebar covering the page, a menu over the content, a dialog cut off. Look for:
+7. **Check the take yourself** with `step_frames`, every step, then send `review_take` with one verdict per narrated step; `ok: false` with a note sends it back to you for revision. A take that passes Studio's checks can still be wrong: a dropdown that never opened, the wrong page order, a sidebar covering the page, a menu over the content, a dialog cut off. Look for:
    - the content centred in the 9:16 crop, with no blank area;
    - each caption over the thing it names;
    - text that is right (names, numbers, the merge result);

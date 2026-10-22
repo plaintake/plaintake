@@ -479,6 +479,14 @@ What moves the camera, beyond each targeted step:
 - **`demo.chapter()` zooms out to the whole frame.** On a vertical cut (`--reframe follow`,
   `--for tiktok`), where the whole width does not fit, it zooms out in place over the content
   the camera was on rather than sliding to the middle of the screen.
+- **A target off screen is scrolled into view first.** Before a targeted step begins, a web
+  target that is not fully on screen glides into view (the same 450ms ease as `scroll`), so the
+  camera and the highlight frame where the element is filmed. One already on screen is never
+  moved. A step with `reveal` scrolls its own way after its action instead.
+- **A target the viewer cannot see is reported.** `target.offscreen` names a step whose target
+  still sits partly outside the frame although it would fit in it (a horizontal scroller, a
+  `reveal` that settles it off screen); `target.covered` names one under something else at its
+  centre (a sticky header, a modal, a banner) and what covers it. `plaintake check` reports both.
 - **An `app.drag` from a bare `{ x, y }` point** (a click off a text box, a grab on a canvas)
   only moves the camera when the point is not already well inside what is on screen. A point
   has no element to frame, so zooming in on one would just centre on empty space.

@@ -4,6 +4,32 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.37.0
+
+**Narration stays with the screen.** A narrated step is now held until its caption's whole slot
+has passed, not just its audio. Before, a run of short lines in a row ("click one,", "copy,") each
+ended a little before its caption did, so the captions and the voice drifted further behind the
+actions with every line, by several seconds over a long video. Each narrated step can take up to
+about 0.4 s longer, and every caption starts with its step. Recordings you already made render
+exactly as before.
+
+**Web targets are filmed where they are clicked.** Before a targeted step begins, a web target
+that is not fully on screen now glides into view (the same ease as `scroll`), so the camera and
+the highlight frame the element where it is filmed, not where it sat before the browser jumped it
+into view mid-click. A target already on screen is never moved, and a step with `reveal` scrolls
+its own way as before. Two new notes, never failures, say when a viewer still cannot see a
+target: `target.offscreen` (partly outside the frame although it would fit) and `target.covered`
+(under a sticky header, a modal or a banner, naming what covers it). `plaintake check` reports
+both.
+
+**A chapter called mid-turn keeps its time.** In a recording with several actors, a terminal or
+Mac app beside a browser, or an explain scene, a `demo.chapter` called a few steps into an
+actor's turn was pulled back to the cut that started the turn. It now starts where it was
+called. Single-actor recordings are unchanged.
+
+**`validate --json` reports the scenario's `pronunciations`**, when it declares any, so a voice
+outside PlainTake can say a line the way PlainTake's own narrator would.
+
 ## 1.36.0
 
 **New: `--encode master`, an upload master for long-form video.** `run --encode master` renders
