@@ -38,7 +38,24 @@ locators (`getByRole`, …). Mask anything private with `web.mask` before it app
 - **Drag and drop** uses dispatched `DragEvent`s.
   - A drop onto an existing field throws, so place fields bottom-up.
 - **Chromium's PDF viewer** reports `ERR_ABORTED`. Poll the URL instead.
-- **Takes run slower than rehearsals** (`word-merge-to-pdf-hr-letters`, Oct 2026): the same steps took 2-3 s in rehearsals and 10-18 s in takes (canvas settling after the spreadsheet upload, Save as Template, the merge screen loading, template deletion). Give every network wait its own step with a long line, hover the field chips while the canvas settles, and start the template deletion unawaited in the step before the CTA. Check `curl -w %{time_total} https://mergram.com/api/config` first: at 1-7 s for that endpoint, a take can't pass (Save as Template hung 30 s).
+- **Start from the newest produced scenario with the same flow** and copy its settings block, canvas constants (`CANVAS_WIDTH`, px per pt, `FIELDS`/`SPOTS`) and helpers whole: the camera frame, `frameBox`, the PDF viewer, cleanup, `retry`. The one clean run of six (local-flyers, Oct 2026) was built on gift-vouchers this way; the others re-learnt the framing in 3-7 rehearsals.
+- **Slow waits** (plainlab, Oct 2026). Give each its own narrated step, and read the rehearsal's `pacing`. Takes ran these about as fast as rehearsals did; the pause comes from the line being shorter than the wait.
+  - Save as Template, 2-4 s.
+  - Opening a saved template, about 4 s.
+  - Update Template.
+  - A merge job: about 7 s for 40-50 rows, with progress every 10 rows. Narrate it across two steps.
+  - The output PDF fetch.
+  - Fetch the output PDFs as soon as the job completes, and start the cleanup then, unawaited. A fetch racing the template deletion filmed a 13.8 s pause.
+- **Uploads and Auto-map go in warmup** when the short doesn't teach them: a short runs about 14 characters of line a second plus its holds, and 20 steps of set-up pushed reuse-template to 67.7 s.
+- **Canvas vs the 9:16 crop**: the 640 px editor canvas is wider than the picture. Frame a box of at most about 596 px over the part the step is about. Never collapse the sidebar: the canvas widens and the field spots, measured at 640, miss.
+- **A page that replaces the screen** (the preview frame, an output PDF, a new route) keeps the camera where the previous step left it. Point the step *before* it at a centred `#demo-camera-frame`. Show PDFs in a frame about 800 px wide, centred on a dark backdrop: Chromium draws a full-width viewer's page left of centre, and the names were cut off in 4 takes of first-merge.
+- **Overlays**: remove a preview frame or overlay at the start of the next step, never partway through its own line. A dialog still closing over the next target is right as it is: accept it with `acceptFraming` and a reason from the first rehearsal.
+- **mergram.com stalls** (Oct 2026): about 1 request in 8 hung for 40 s or more. Rehearsals passed and takes timed out on the same step.
+  - Wrap warmup and cleanup API calls in a retry with 20 s timeouts.
+  - Reach the editor through the app (Templates → New Template → Choose Template), not `page.goto('/new')`.
+  - Give Playwright waits inside `demo.waitFor`'s `until()` `{ timeout: 0 }`, so the waitFor's own deadline is the only one.
+  - Check `curl -w %{time_total} https://mergram.com/api/config` first: at 1-7 s for that endpoint, a take can't pass (Save as Template hung 30 s).
+- **Read the component before asserting counts or names**: the job's file list shows all 40 files, not 20 a page (`JobResultsPanel.tsx`), and the Media Albums page has two "Upload Image" buttons (`MediaAlbums.tsx`).
 - **Text baselines**: check the stills zoomed in when fields sit next to static text ("the name now looks lower compared to 'Dear'").
 
 ## Google Sheets (learned on sheets-permission-slip-tracker)

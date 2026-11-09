@@ -4,6 +4,28 @@
 GitHub release notes, so this file is the source of what a customer reads — not a summary
 written afterwards.
 
+## 1.38.0
+
+**Removed: `plaintake concat`.** The experimental handoff to the Concat editor (added in 1.36.0) is
+gone, along with its `doctor` line. PlainTake still makes no sound but the narration; add a music
+bed, a disclaimer or an end screen to the finished video in the editor of your choice. Recordings
+are unchanged.
+
+**`--speech file` accepts a step's `voice`.** A step or actor that names a voice no longer stops a
+`--speech file` run: the voice is whoever made that step's WAV, so PlainTake plays the file as
+always. A voiced step with no file is still an error, and now names the voice too.
+
+**A Mac app's picture that stops reaching the video fails the take.** Before, a take whose desktop
+picture stalled partway through, while the app went on, showed the same still for the rest of the
+take under the narration, and passed every check. Now the run exits 4 and says when the picture
+stopped and for how long. The capture also recovers on its own where it can:
+- a screen capture the system stops is started again, up to 3 times;
+- the desktop page reconnects to a stream that ended, and skips a frame that never decodes;
+- a page that reads nothing for 2 s is cut off and reconnects.
+
+The recorder log gains two lines on how the frames travelled (`desktop stream:` and
+`desktop page:`).
+
 ## 1.37.0
 
 **Narration stays with the screen.** A narrated step is now held until its caption's whole slot

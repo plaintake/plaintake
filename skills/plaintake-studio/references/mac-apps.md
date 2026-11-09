@@ -1,6 +1,6 @@
 # Mac apps: what each one does on camera
 
-Learned on real shorts (macOS 15.8, Office 16.11x, iWork 14). Check that a quirk
+Learned on real videos (macOS 15.8, Office 16.11x, iWork 14). Check that a quirk
 still holds when the app updates.
 
 ## Every Mac app
@@ -90,10 +90,12 @@ still holds when the app updates.
 - **Find and Replace**: Cmd+Shift+H toggles the Find and Replace *sidebar* and was unreliable (opened once, nothing the next run; Word then reopens the sidebar as Thumbnails). Use `app.menu('Edit > Find > Advanced Find and Replace...')`: a centred dialog on its Find tab; click radio 'Replace', comboboxes 'Find what:' and 'Replace with:' (click to focus, then type), button 'Replace All'. Word answers "All done. We made N replacements." (OK = Return; Escape then closes the dialog). Replace All keeps a run's highlight on the new text.
 - **Sample .docx via textutil** drops highlights, fonts and page size and merges plain runs: wrap each word to patch in a styled span, then patch `word/document.xml` (`create-eu-staff-calendar-letter-assets.ts`). HTML tables flatten to one cell a line.
 - **No Merge to PDF** in Word 16.114 for Mac (`word-merge-to-pdf-hr-letters`): Mailings > Finish & Merge is a menubutton that *does* open on an AX click, but lists only Edit Individual Documents..., Print Documents... and Merge to E-Mail. One PDF per record needs Mergram.
-- **Keep `-AppleLocale en_IE`** for Word, as every Word short has: one launch with `en_US` showed "Default Editing Language Changed" and Word replaced Normal.dotm (keeping a backup). Market formats come from the data anyway.
+- **Keep `-AppleLocale en_IE`** for Word, as every Word video has: one launch with `en_US` showed "Default Editing Language Changed" and Word replaced Normal.dotm (keeping a backup). Market formats come from the data anyway.
 - **Link a Word table, not an .xlsx, when the merge only needs the values** (`word-merge-date-format-fix`): an .xlsx source goes through Word's Excel converter (Open Document in Workbook / Open Workbook), which hung Word at launch in five takes while rehearsals passed. A .docx holding one table, linked with `<w:dataType w:val="textFile"/>` and `<w:query w:val="SELECT * FROM /abs/path.docx"/>` (no odso), opens with no popups. Write each cell as Excel shows it.
 - **A force-quit Word leaves `AutoRecovery save of <doc>`** (Containers/com.microsoft.Word/.../AutoRecovery) and a `~$` lock beside the linked list; trash both before the next take, or Word can launch with no main window.
 - **A new linked workbook** needs Word's one-time Grant File Access (Select... opens an Open panel only the person can click), as `mailing-list.xlsx` did.
+- **Opening a PDF** (`word-open-pdf-to-edit`): `desktop.document` on a .pdf works with no file picker and no OK alert; Word shows a "Word is converting: <scratch path>" window for a few seconds that inspect_app catches first. In `warmup`, poll `app.text()` until it no longer has "Word is converting". A plain one-column text PDF becomes one paragraph per line, no empty paragraphs, so Down/Home/Right/Shift+Right reach any word.
+- **Save As -> PDF**: File > Save As... is a sheet in the window (filmed, AX-clickable). `app.choose({ role: 'popup', name: 'File Format:' }, 'PDF')`; the button then reads **Export** (`name: 'Save'` hits the toolbar's Save), and "Best for printing" is already chosen (the other radio uses Microsoft's online service). Where: is the scratch folder, so the same name asks "already exists": `waitForText(/already exists/)`, then click Replace; the scratch cleanup removes the file.
 - **No account** shows at the top right of a document window (Comments, Editing, Share only); nothing to mask there.
 
 ## Preview
@@ -127,3 +129,16 @@ still holds when the app updates.
   - `app.type`/`app.press` ignore `target`: the camera stays put. Put a `demo.say({ target })` on the next field before typing into it, which also keeps a short typing line from filming a silent pause.
   - The whole page for the result: View > Single Page, View > Zoom to Fit (page at window x 400–880), then View > Continuous Scroll under the CTA to put the view back.
 - **Inspector** (Tools > Show Inspector) docks right of the window, outside the frame, and `app.drag` refuses a grab point outside the window. File sizes can't be filmed there: put them in the captions.
+
+## PlainVoice
+Learned on `plainvoice-chatterbox-voices` (PlainVoice 1.2.0, `desktop: { app: 'com.plainvoice.desktop' }`).
+- **Its pop-ups are web `<select>`s** whose items aren't in Accessibility (`app.choose` sees none). Click the pop-up, arrow to the item, Return. Typing a name works only without a space (the space picks the highlighted item).
+- **Filters take a moment.** After changing a Voices filter in `warmup`, wait until a voice the filter hides has left `app.text()`; otherwise the first narrated step films the list changing, or a frozen pause.
+- **Line voices (1.2.0+)**: every line's pop-up has the same name, so open each with a real click (agreed for these pop-ups only) at its measured middle, then type the start of the voice's name and Return. The list groups every installed voice by language.
+  - Editor rows are 68 points apart unscrolled. A flagged line grows a chip row that moves its own pop-up and every row below it, so measure the flagged line in a rehearsal and switch lines bottom up.
+  - A line in a language its voice can't read (Vietnamese in Miles's voice) is tried three times and flagged: about 40 s more voicing to narrate over.
+- **Voicing is slow and silent.** Narrate over it with lines that show the Queue or the lines filling in, and end the wait with `app.waitForText(/Everything is voiced/, { timeoutMs: 120000, subtitle })`.
+- **Playback isn't recorded.** For Play all, each character speaks its line as a narrated step with `voice: '<literal id>'`; a voice held in a variable fails the narration lint (the voiced file is named from it).
+- **A window that doesn't change for a while has filmed black.** Change something on camera (a filter, a screen) rather than narrating long over a still list.
+- **Exports**: `app.click({ role: 'popup', name: 'Exports' })` opens a menu that stays open to film (WAV, SRT, VTT, word timings); Escape closes it.
+- **Leave it as found**: after the last line, move the project to the Trash (open it from Projects, then `popup 'Project actions'` → Move to Trash and confirm); in `warmup`, trash any project an interrupted run left behind.

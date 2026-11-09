@@ -1,6 +1,6 @@
 # Sample files and asset scripts
 
-A short shows fictional sample files that sit beside the scenario. They are opened with
+A video shows fictional sample files that sit beside the scenario. They are opened with
 `desktop.document` or uploaded on the web, never taken from the person's own files. Each product
 keeps generators in `scenarios/assets/create-*.ts`.
 

@@ -93,7 +93,7 @@ build, and no macOS Intel build: on either, run PlainTake through Docker (below)
 
 ```bash
 # 1. Download the tarball for your platform, the checksums, and the installer
-VERSION=1.37.0
+VERSION=1.38.0
 BASE=https://github.com/plaintake/plaintake/releases/download/v$VERSION
 curl -LO $BASE/plaintake-$VERSION-darwin-arm64.tar.gz   # or -linux-x64, -linux-arm64
 curl -LO $BASE/SHA256SUMS
@@ -150,7 +150,7 @@ the release is tested against, so PlainTake never redistributes it. The recipe i
 tarball checksums and refuses to install anything that doesn't match.
 
 ```bash
-VERSION=1.37.0
+VERSION=1.38.0
 curl -LO https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile
 docker build -t plaintake -f plaintake.Dockerfile .    # a few minutes, once per version
 
@@ -167,7 +167,7 @@ docker run --rm -v "$PWD:/work" \
 **PowerShell** (the shell Windows starts from, since Docker is the only way this tool runs there):
 
 ```powershell
-$VERSION = "1.37.0"
+$VERSION = "1.38.0"
 curl.exe -LO "https://github.com/plaintake/plaintake/releases/download/v$VERSION/plaintake.Dockerfile"
 docker build -t plaintake -f plaintake.Dockerfile .
 
@@ -198,7 +198,7 @@ every pull request:
 ```yaml
 - uses: plaintake/action@v1
   with:
-    version: 1.37.0
+    version: 1.38.0
     scenario: demos/create-api-key.demo.ts
     base-url: http://localhost:3000
 ```
@@ -249,9 +249,6 @@ plaintake inspect  <bundleDir>
 plaintake publish  <bundleDir> [--endpoint <url>] [--key <key>] [--remember]
                                    [--expiry <duration>|none]
 plaintake unpublish <bundleDir | shareId | shareURL> [--endpoint <url>] [--key <key>]
-plaintake concat build <bundleDir> --output <dir> [--music <file>] [--music-db=<dB>] [--duck-db=<dB>]
-                                   [--disclaimer <text>] [--end-screen <s>] [--force]
-plaintake concat finish <dir> [--output <file.mp4>]
 plaintake prune    [--older-than <duration>] [--keep-last <n>] [--scenario <id>]
                                    [--max-size <size>] [--yes]
 plaintake import   <trace.zip> --output <draft.demo.ts>
@@ -274,7 +271,6 @@ plaintake --version
 | `inspect` | Reports the video, captions, chapters, output sizes and toolchain. Read-only |
 | `publish` | Uploads a recording's video, captions and chapter marks to a share service and prints the viewer link — a page with a clickable transcript and chapter list. The share id is derived from the video's sha256, so republishing is a no-op. No MCP tool |
 | `unpublish` | Takes a published share down, by recording, share id or share URL. The link stops working at once, and publishing the same recording again restores it until the service deletes it for good. Cannot recall copies viewers already downloaded. No MCP tool |
-| `concat` | Hands a recording to the [Concat](https://github.com/jub0t/Concat) video editor, installed separately, for what PlainTake does not do: a music bed (ducked under the narration), a disclaimer, an end screen, and your own edits — by hand, or by an AI agent through Concat's MCP server. `finish` exports the edit at 1440p with the recording's chapters and captions moved to wherever their footage now sits. The recording itself is never changed. Experimental. No MCP tool |
 | `prune` | Deletes recordings under the working directory, selected by age, size cap, count or scenario. Dry-run unless `--yes`. No MCP tool |
 | `import` | Drafts a scenario from any Playwright `trace.zip` — yours, or a recording's own `trace/`. Placeholder subtitles, no timings, secret-looking values redacted. Review before committing. No MCP tool |
 | `doctor` | Checks FFmpeg, libass, x264 and the filters that are needed, and reports whether the voice model is installed |
@@ -560,8 +556,7 @@ restriction on selling what you make. See [`LICENSE`](LICENSE) §3.
 Stated up front rather than discovered later:
 
 - **The only sound is the captions read aloud** — no microphone, no page audio, no system
-  audio, no music, no sound effects. (A music bed can be added afterwards, outside the recording,
-  by handing it to an editor with `plaintake concat`.) `--speech on` needs a one-time 93 MB voice-model
+  audio, no music, no sound effects. `--speech on` needs a one-time 93 MB voice-model
   download. There are 28 English voices — variable per actor and per step — but English only,
   because the licence-clean pronunciation data PlainTake ships exists for English alone (the
   dictionaries the other languages need are eSpeak-derived, and GPL), so a non-English scenario
